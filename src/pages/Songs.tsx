@@ -82,11 +82,19 @@ export function Songs() {
       <div className="p-6 pb-20 lg:pb-6">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 drop-shadow-sm">Songs 🎵</h1>
-              <p className="mt-2 text-gray-700 drop-shadow-sm">
-                Browse and search our collection of Sunday school songs
-              </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 drop-shadow-sm">Songs 🎵</h1>
+                <p className="mt-2 text-gray-700 drop-shadow-sm">
+                  Browse and search our collection of Sunday school songs
+                </p>
+              </div>
+              <Link
+                to="/dashboard"
+                className="ml-4 inline-flex items-center text-blue-600 hover:text-blue-800 drop-shadow-sm font-medium"
+              >
+                🏠 Dashboard
+              </Link>
             </div>
             <Link
               to="/dashboard/songs/upload"

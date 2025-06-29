@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -54,15 +54,21 @@ export function SongUpload() {
     <ChildFriendlyBackground>
       <div className="p-6 pb-20 lg:pb-6">
         <div className="max-w-4xl mx-auto">
-          <div className="mb-6">
+          <div className="mb-6 flex items-center justify-between">
             <Link
               to="/dashboard/songs"
-              className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4 drop-shadow-sm"
+              className="inline-flex items-center text-blue-600 hover:text-blue-800 drop-shadow-sm"
             >
               <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
               Back to Songs
+            </Link>
+            <Link
+              to="/dashboard"
+              className="inline-flex items-center text-blue-600 hover:text-blue-800 drop-shadow-sm font-medium"
+            >
+              🏠 Dashboard
             </Link>
           </div>
 
