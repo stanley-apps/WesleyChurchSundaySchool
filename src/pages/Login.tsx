@@ -41,7 +41,7 @@ export function Login() {
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-            Sunday School Hub
+           Wesley Church Sunday School Hub
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             {showSignup ? 'Create demo user account' : 'Sign in to access your dashboard'}
