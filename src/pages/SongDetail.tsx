@@ -14,6 +14,7 @@ export function SongDetail() {
   const [isEditing, setIsEditing] = useState(false)
   const [editedLyrics, setEditedLyrics] = useState('')
   const [saving, setSaving] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -113,11 +114,15 @@ export function SongDetail() {
     }
   }
 
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen)
+  }
+
   if (loading) {
     return (
       <ChildFriendlyBackground>
         <div className="p-6 pb-20 lg:pb-6">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-3xl mx-auto">
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
@@ -131,7 +136,7 @@ export function SongDetail() {
     return (
       <ChildFriendlyBackground>
         <div className="p-6 pb-20 lg:pb-6">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-3xl mx-auto">
             <div className="bg-red-50/90 backdrop-blur-sm border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
               {error || 'Song not found'}
             </div>
@@ -149,10 +154,55 @@ export function SongDetail() {
 
   const canEdit = user && song.user_id === user.id
 
+  // Fullscreen Modal
+  if (isFullscreen) {
+    return (
+      <div className="fixed inset-0 bg-white z-50 overflow-y-auto">
+        <div className="min-h-screen px-4 sm:px-8 py-8">
+          <div className="max-w-3xl mx-auto">
+            {/* Fullscreen Header */}
+            <div className="flex items-center justify-between mb-8">
+              <h1 className="text-4xl font-bold text-gray-900">{song.title}</h1>
+              <button
+                onClick={toggleFullscreen}
+                className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+              >
+                ✕ Exit Fullscreen
+              </button>
+            </div>
+
+            {/* Fullscreen Lyrics */}
+            <div className="prose prose-xl max-w-none text-center">
+              <ReactMarkdown 
+                className="font-serif text-xl leading-loose"
+                components={{
+                  h1: ({children}) => <h1 className="text-3xl font-bold text-gray-900 mb-6 mt-8 first:mt-0 text-center">{children}</h1>,
+                  h2: ({children}) => <h2 className="text-2xl font-bold text-gray-900 mb-4 mt-6 first:mt-0 text-center">{children}</h2>,
+                  h3: ({children}) => <h3 className="text-xl font-bold text-gray-900 mb-3 mt-5 first:mt-0 text-center">{children}</h3>,
+                  p: ({children}) => <p className="text-gray-800 mb-6 leading-loose whitespace-pre-line text-center">{children}</p>,
+                  strong: ({children}) => <strong className="font-bold text-gray-900">{children}</strong>,
+                  em: ({children}) => <em className="italic text-gray-800">{children}</em>,
+                  blockquote: ({children}) => (
+                    <blockquote className="border-l-4 border-blue-300 pl-6 py-2 my-6 bg-blue-50/50 rounded-r-lg text-center">
+                      <div className="text-gray-700 italic leading-loose">{children}</div>
+                    </blockquote>
+                  ),
+                }}
+              >
+                {song.lyrics}
+              </ReactMarkdown>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <ChildFriendlyBackground>
-      <div className="p-6 pb-20 lg:pb-6">
-        <div className="max-w-4xl mx-auto">
+      <div className="px-4 sm:px-8 py-6 pb-20 lg:pb-6">
+        <div className="max-w-3xl mx-auto">
+          {/* Header Navigation */}
           <div className="mb-6 flex items-center justify-between">
             <Link
               to="/dashboard/songs"
@@ -163,24 +213,46 @@ export function SongDetail() {
               </svg>
               Back to Songs
             </Link>
-            <Link
-              to="/dashboard"
-              className="inline-flex items-center text-blue-600 hover:text-blue-800 drop-shadow-sm font-medium"
-            >
-              🏠 Dashboard
-            </Link>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={toggleFullscreen}
+                className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-sm"
+              >
+                🎬 Fullscreen View
+              </button>
+              <Link
+                to="/dashboard"
+                className="inline-flex items-center text-blue-600 hover:text-blue-800 drop-shadow-sm font-medium"
+              >
+                🏠 Dashboard
+              </Link>
+            </div>
           </div>
 
-          <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 border border-white/50">
-            <div className="mb-6">
-              <h1 className="text-3xl font-bold text-gray-900 mb-4 drop-shadow-sm">{song.title}</h1>
-              <div className="text-sm text-gray-600">
-                Added {new Date(song.created_at).toLocaleDateString()} at {new Date(song.created_at).toLocaleTimeString()}
+          {/* Main Content Card */}
+          <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-white/50">
+            {/* Song Title and Metadata */}
+            <div className="px-6 py-6 border-b border-gray-200/50">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2 text-center drop-shadow-sm">
+                {song.title}
+              </h1>
+              <div className="text-sm text-gray-600 text-center">
+                Added on {new Date(song.created_at).toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })} at {new Date(song.created_at).toLocaleTimeString('en-US', {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true
+                })}
               </div>
             </div>
 
-            <div className="prose max-w-none">
-              <div className="flex items-center justify-between mb-4">
+            {/* Lyrics Section */}
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-gray-900 drop-shadow-sm">Lyrics</h2>
                 {canEdit && (
                   <button
@@ -211,7 +283,7 @@ export function SongDetail() {
                     value={editedLyrics}
                     onChange={(e) => setEditedLyrics(e.target.value)}
                     rows={12}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm resize-vertical"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm resize-vertical font-serif text-lg"
                     placeholder="Enter the song lyrics... You can use Markdown formatting!"
                   />
                   <div className="flex gap-3">
@@ -232,62 +304,67 @@ export function SongDetail() {
                   </div>
                 </div>
               ) : (
-                <div className="bg-gray-50/80 backdrop-blur-sm p-6 rounded-lg border border-gray-200/50">
-                  <ReactMarkdown 
-                    className="song-lyrics"
-                    components={{
-                      h1: ({children}) => <h1 className="text-2xl font-bold text-gray-900 mb-4 mt-6 first:mt-0">{children}</h1>,
-                      h2: ({children}) => <h2 className="text-xl font-bold text-gray-900 mb-3 mt-5 first:mt-0">{children}</h2>,
-                      h3: ({children}) => <h3 className="text-lg font-bold text-gray-900 mb-2 mt-4 first:mt-0">{children}</h3>,
-                      p: ({children}) => <p className="text-gray-800 mb-4 leading-loose whitespace-pre-line">{children}</p>,
-                      strong: ({children}) => <strong className="font-bold text-gray-900">{children}</strong>,
-                      em: ({children}) => <em className="italic text-gray-800">{children}</em>,
-                      blockquote: ({children}) => (
-                        <blockquote className="border-l-4 border-blue-300 pl-6 py-2 my-4 bg-blue-50/50 rounded-r-lg">
-                          <div className="text-gray-700 italic leading-loose">{children}</div>
-                        </blockquote>
-                      ),
-                      ul: ({children}) => <ul className="list-disc list-inside mb-4 space-y-2 text-gray-800">{children}</ul>,
-                      ol: ({children}) => <ol className="list-decimal list-inside mb-4 space-y-2 text-gray-800">{children}</ol>,
-                      li: ({children}) => <li className="text-gray-800 leading-loose">{children}</li>,
-                      code: ({children}) => (
-                        <code className="bg-gray-200 px-2 py-1 rounded text-sm font-mono text-gray-800">
-                          {children}
-                        </code>
-                      ),
-                      pre: ({children}) => (
-                        <pre className="bg-gray-100 p-4 rounded-lg overflow-x-auto mb-4 whitespace-pre-wrap">
-                          <code className="text-sm font-mono text-gray-800">{children}</code>
-                        </pre>
-                      ),
-                    }}
-                  >
-                    {song.lyrics}
-                  </ReactMarkdown>
+                <div className="bg-white/90 backdrop-blur-sm p-8 rounded-lg border border-gray-200/50 shadow-sm">
+                  <div className="prose prose-lg max-w-none text-center">
+                    <ReactMarkdown 
+                      className="font-serif text-xl leading-loose"
+                      components={{
+                        h1: ({children}) => <h1 className="text-2xl font-bold text-gray-900 mb-6 mt-8 first:mt-0 text-center">{children}</h1>,
+                        h2: ({children}) => <h2 className="text-xl font-bold text-gray-900 mb-4 mt-6 first:mt-0 text-center">{children}</h2>,
+                        h3: ({children}) => <h3 className="text-lg font-bold text-gray-900 mb-3 mt-5 first:mt-0 text-center">{children}</h3>,
+                        p: ({children}) => <p className="text-gray-800 mb-6 leading-loose whitespace-pre-line text-center">{children}</p>,
+                        strong: ({children}) => <strong className="font-bold text-gray-900">{children}</strong>,
+                        em: ({children}) => <em className="italic text-gray-800">{children}</em>,
+                        blockquote: ({children}) => (
+                          <blockquote className="border-l-4 border-blue-300 pl-6 py-2 my-6 bg-blue-50/50 rounded-r-lg text-center">
+                            <div className="text-gray-700 italic leading-loose">{children}</div>
+                          </blockquote>
+                        ),
+                        ul: ({children}) => <ul className="list-disc list-inside mb-6 space-y-2 text-gray-800 text-left max-w-md mx-auto">{children}</ul>,
+                        ol: ({children}) => <ol className="list-decimal list-inside mb-6 space-y-2 text-gray-800 text-left max-w-md mx-auto">{children}</ol>,
+                        li: ({children}) => <li className="text-gray-800 leading-loose">{children}</li>,
+                        code: ({children}) => (
+                          <code className="bg-gray-200 px-2 py-1 rounded text-sm font-mono text-gray-800">
+                            {children}
+                          </code>
+                        ),
+                        pre: ({children}) => (
+                          <pre className="bg-gray-100 p-4 rounded-lg overflow-x-auto mb-6 whitespace-pre-wrap text-left">
+                            <code className="text-sm font-mono text-gray-800">{children}</code>
+                          </pre>
+                        ),
+                      }}
+                    >
+                      {song.lyrics}
+                    </ReactMarkdown>
+                  </div>
                 </div>
               )}
             </div>
 
+            {/* Action Buttons */}
             {!isEditing && (
-              <div className="mt-8 flex flex-col sm:flex-row gap-4">
-                <button 
-                  onClick={copyLyrics}
-                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200"
-                >
-                  📋 Copy Lyrics
-                </button>
-                <button 
-                  onClick={shareSong}
-                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200"
-                >
-                  📤 Share Song
-                </button>
-                <Link
-                  to="/dashboard/songs/upload"
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-center"
-                >
-                  ➕ Add Another Song
-                </Link>
+              <div className="px-6 py-6 border-t border-gray-200/50">
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <button 
+                    onClick={copyLyrics}
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+                  >
+                    📋 Copy Lyrics
+                  </button>
+                  <button 
+                    onClick={shareSong}
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+                  >
+                    📤 Share Song
+                  </button>
+                  <Link
+                    to="/dashboard/songs/upload"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 text-center flex items-center justify-center gap-2"
+                  >
+                    ➕ Add Another Song
+                  </Link>
+                </div>
               </div>
             )}
           </div>
