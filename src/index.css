@@ -3,8 +3,15 @@
 @tailwind utilities;
 
 @layer base {
-  body {
+  html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  
+  * {
+    box-sizing: border-box;
   }
 }
 
@@ -26,39 +33,28 @@
   }
 }
 
-/* Ensure proper layout structure */
-html, body, #root {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-}
-
-/* Fix any potential CSS conflicts */
-* {
-  box-sizing: border-box;
-}
-
-/* Ensure sidebar is properly positioned */
-.lg\:fixed {
-  position: fixed !important;
-}
-
-.lg\:inset-y-0 {
-  top: 0 !important;
-  bottom: 0 !important;
-}
-
-/* Ensure main content has proper spacing */
-.lg\:pl-64 {
-  padding-left: 16rem !important;
-}
-
-@media (max-width: 1023px) {
-  .lg\:pl-64 {
-    padding-left: 0 !important;
-  }
-  
+@layer utilities {
+  /* Force important styles for layout */
   .lg\:fixed {
-    position: static !important;
+    position: fixed !important;
+  }
+
+  .lg\:inset-y-0 {
+    top: 0 !important;
+    bottom: 0 !important;
+  }
+
+  .lg\:pl-64 {
+    padding-left: 16rem !important;
+  }
+
+  @media (max-width: 1023px) {
+    .lg\:pl-64 {
+      padding-left: 0 !important;
+    }
+    
+    .lg\:fixed {
+      position: static !important;
+    }
   }
 }
