@@ -41,7 +41,7 @@ export function Dashboard() {
       <div className="max-w-7xl mx-auto">
         {/* Welcome Section */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome to Sunday School Hub</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome to Wesley Church Sunday School Hub</h1>
           <p className="text-lg text-gray-600">
             Hello, {user?.email}! Ready to explore?
           </p>
