@@ -26,7 +26,7 @@ export function Layout() {
           <h1 className="text-lg font-semibold text-gray-900">Sunday School Hub</h1>
           <button
             onClick={handleSignOut}
-            className="text-sm text-gray-600 hover:text-gray-900 flex items-center"
+            className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1"
           >
             🔓 Sign Out
           </button>
@@ -37,10 +37,12 @@ export function Layout() {
         {/* Sidebar */}
         <div className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0">
           <div className="flex flex-col flex-grow bg-white border-r border-gray-200 shadow-sm">
+            {/* Sidebar Header */}
             <div className="flex items-center flex-shrink-0 px-6 py-4 border-b border-gray-200">
               <h1 className="text-xl font-bold text-gray-900">Sunday School Hub</h1>
             </div>
             
+            {/* Navigation */}
             <div className="flex-1 flex flex-col overflow-y-auto">
               <nav className="flex-1 px-4 py-4 space-y-1">
                 {navigation.map((item) => {
@@ -53,9 +55,9 @@ export function Layout() {
                         key={item.name}
                         className="flex items-center px-3 py-2 text-sm font-medium text-gray-400 cursor-not-allowed rounded-md"
                       >
-                        <span className="mr-3">{item.icon}</span>
-                        {item.name}
-                        <span className="ml-auto text-xs bg-gray-100 px-2 py-1 rounded">
+                        <span className="mr-3 text-lg">{item.icon}</span>
+                        <span className="flex-1">{item.name}</span>
+                        <span className="text-xs bg-gray-100 px-2 py-1 rounded">
                           Coming Soon
                         </span>
                       </div>
@@ -66,19 +68,20 @@ export function Layout() {
                     <Link
                       key={item.name}
                       to={item.href}
-                      className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                      className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
                         isActive
                           ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
                           : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                       }`}
                     >
-                      <span className="mr-3">{item.icon}</span>
+                      <span className="mr-3 text-lg">{item.icon}</span>
                       {item.name}
                     </Link>
                   )
                 })}
               </nav>
               
+              {/* User section */}
               <div className="flex-shrink-0 px-4 py-4 border-t border-gray-200">
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
@@ -88,7 +91,7 @@ export function Layout() {
                   </div>
                   <button
                     onClick={handleSignOut}
-                    className="ml-3 text-sm text-gray-600 hover:text-gray-900 flex items-center"
+                    className="ml-3 text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1"
                   >
                     🔓 Sign Out
                   </button>
