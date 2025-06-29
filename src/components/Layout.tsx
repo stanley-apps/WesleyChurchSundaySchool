@@ -121,15 +121,16 @@ export function Layout() {
             
             if (isDisabled) {
               return (
-                <div
+                <button
                   key={item.name}
-                  className="flex-1 flex flex-col items-center py-3 text-gray-400"
+                  disabled
+                  className="flex-1 flex flex-col items-center py-4 px-2 text-gray-400 cursor-not-allowed min-h-[60px] touch-manipulation"
                 >
-                  <div className="w-6 h-6 flex items-center justify-center mb-1">
-                    <span className="text-xl leading-none">{item.icon}</span>
+                  <div className="w-8 h-8 flex items-center justify-center mb-1">
+                    <span className="text-2xl leading-none">{item.icon}</span>
                   </div>
-                  <span className="text-xs font-medium">Soon</span>
-                </div>
+                  <span className="text-xs font-medium leading-tight">Soon</span>
+                </button>
               )
             }
             
@@ -137,14 +138,14 @@ export function Layout() {
               <Link
                 key={item.name}
                 to={item.href}
-                className={`flex-1 flex flex-col items-center py-3 transition-colors ${
-                  isActive ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'
+                className={`flex-1 flex flex-col items-center py-4 px-2 transition-colors min-h-[60px] touch-manipulation ${
+                  isActive ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
-                <div className="w-6 h-6 flex items-center justify-center mb-1">
-                  <span className="text-xl leading-none">{item.icon}</span>
+                <div className="w-8 h-8 flex items-center justify-center mb-1">
+                  <span className="text-2xl leading-none">{item.icon}</span>
                 </div>
-                <span className="text-xs font-medium">{item.name}</span>
+                <span className="text-xs font-medium leading-tight">{item.name}</span>
               </Link>
             )
           })}
