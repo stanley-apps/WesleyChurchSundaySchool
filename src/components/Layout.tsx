@@ -123,10 +123,12 @@ export function Layout() {
               return (
                 <div
                   key={item.name}
-                  className="flex-1 flex flex-col items-center py-2 text-gray-400"
+                  className="flex-1 flex flex-col items-center py-3 text-gray-400"
                 >
-                  <span className="text-lg">{item.icon}</span>
-                  <span className="text-xs mt-1">Soon</span>
+                  <div className="w-6 h-6 flex items-center justify-center mb-1">
+                    <span className="text-xl leading-none">{item.icon}</span>
+                  </div>
+                  <span className="text-xs font-medium">Soon</span>
                 </div>
               )
             }
@@ -135,12 +137,14 @@ export function Layout() {
               <Link
                 key={item.name}
                 to={item.href}
-                className={`flex-1 flex flex-col items-center py-2 transition-colors ${
+                className={`flex-1 flex flex-col items-center py-3 transition-colors ${
                   isActive ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                <span className="text-lg">{item.icon}</span>
-                <span className="text-xs mt-1">{item.name}</span>
+                <div className="w-6 h-6 flex items-center justify-center mb-1">
+                  <span className="text-xl leading-none">{item.icon}</span>
+                </div>
+                <span className="text-xs font-medium">{item.name}</span>
               </Link>
             )
           })}
