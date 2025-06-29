@@ -1,29 +1,9 @@
-import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { supabase } from '../lib/supabase'
 import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
 
 export function Dashboard() {
   const { user } = useAuth()
-  const [songCount, setSongCount] = useState(0)
-
-  useEffect(() => {
-    fetchSongCount()
-  }, [])
-
-  const fetchSongCount = async () => {
-    try {
-      const { count, error } = await supabase
-        .from('songs')
-        .select('*', { count: 'exact', head: true })
-
-      if (error) throw error
-      setSongCount(count || 0)
-    } catch (err) {
-      console.error('Error fetching song count:', err)
-    }
-  }
 
   const features = [
     {
@@ -116,7 +96,7 @@ export function Dashboard() {
             <h2 className="text-2xl font-semibold text-gray-900 mb-6 drop-shadow-sm">Quick Stats 📊</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-blue-600 mb-1 drop-shadow-sm">{songCount}</div>
+                <div className="text-3xl font-bold text-blue-600 mb-1 drop-shadow-sm">3</div>
                 <div className="text-sm text-gray-700">Songs Available</div>
               </div>
               <div className="text-center">
