@@ -101,6 +101,11 @@ Deno.serve(async (req: Request) => {
     const songResults: SongResult[] = []
 
     for (const result of searchData.data) {
+      // Skip results without a valid URL
+      if (!result.url || typeof result.url !== 'string' || result.url.trim() === '') {
+        continue
+      }
+
       let lyrics = result.content || result.markdown || ''
       
       // Clean up the lyrics
