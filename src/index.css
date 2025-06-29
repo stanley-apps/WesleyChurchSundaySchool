@@ -1,31 +1,10 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@tailwind theme;
 
 @layer base {
-  :root {
-    --color-primary-50: 239 246 255;
-    --color-primary-100: 219 234 254;
-    --color-primary-200: 191 219 254;
-    --color-primary-300: 147 197 253;
-    --color-primary-400: 96 165 250;
-    --color-primary-500: 59 130 246;
-    --color-primary-600: 37 99 235;
-    --color-primary-700: 29 78 216;
-    --color-primary-800: 30 64 175;
-    --color-primary-900: 30 58 138;
-  }
-
-  html, body, #root {
-    height: 100%;
-    margin: 0;
-    padding: 0;
+  body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  }
-  
-  * {
-    box-sizing: border-box;
   }
 }
 
@@ -44,31 +23,5 @@
   
   .card {
     @apply bg-white rounded-lg shadow-md p-6 border border-gray-100;
-  }
-}
-
-@layer utilities {
-  /* Force important styles for layout */
-  .lg\:fixed {
-    position: fixed !important;
-  }
-
-  .lg\:inset-y-0 {
-    top: 0 !important;
-    bottom: 0 !important;
-  }
-
-  .lg\:pl-64 {
-    padding-left: 16rem !important;
-  }
-
-  @media (max-width: 1023px) {
-    .lg\:pl-64 {
-      padding-left: 0 !important;
-    }
-    
-    .lg\:fixed {
-      position: static !important;
-    }
   }
 }
