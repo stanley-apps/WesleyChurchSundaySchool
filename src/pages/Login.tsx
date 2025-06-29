@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 export function Login() {
-  const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -20,8 +20,8 @@ export function Login() {
     setLoading(true)
 
     const { error } = showSignup 
-      ? await signUp(phone, password)
-      : await signIn(phone, password)
+      ? await signUp(email, password)
+      : await signIn(email, password)
     
     if (error) {
       setError(error.message)
@@ -29,7 +29,7 @@ export function Login() {
       setError('')
       alert('Demo user created successfully! You can now sign in.')
       setShowSignup(false)
-      setPhone('')
+      setEmail('')
       setPassword('')
     }
     
@@ -51,18 +51,18 @@ export function Login() {
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                Phone Number
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email Address
               </label>
               <input
-                id="phone"
-                name="phone"
-                type="tel"
+                id="email"
+                name="email"
+                type="email"
                 required
                 className="input-field mt-1"
-                placeholder="+1234567890"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                placeholder="user@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             
@@ -112,7 +112,7 @@ export function Login() {
           <div className="text-center">
             <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-md">
               <p className="font-medium">Demo Credentials:</p>
-              <p>Phone: +1234567890</p>
+              <p>Email: demo@example.com</p>
               <p>Password: password123</p>
             </div>
           </div>
