@@ -124,19 +124,19 @@ export function Dashboard() {
                 <div className="text-3xl font-bold text-blue-600 mb-1 drop-shadow-sm">
                   {loading ? '...' : songCount}
                 </div>
-                <div className="text-sm text-gray-700">Songs Available</div>
+                <div className="text-sm text-gray-700">Songs</div>
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-green-600 mb-1 drop-shadow-sm">0</div>
-                <div className="text-sm text-gray-700">Lessons Completed</div>
+                <div className="text-sm text-gray-700">Lessons</div>
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-purple-600 mb-1 drop-shadow-sm">0</div>
-                <div className="text-sm text-gray-700">Games Played</div>
+                <div className="text-sm text-gray-700">Games</div>
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-orange-600 mb-1 drop-shadow-sm">0</div>
-                <div className="text-sm text-gray-700">Videos Watched</div>
+                <div className="text-sm text-gray-700">Videos</div>
               </div>
             </div>
           </div>
