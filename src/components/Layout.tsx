@@ -22,7 +22,9 @@ export function Layout() {
       {/* Mobile header */}
       <div className="lg:hidden bg-white shadow-sm border-b">
         <div className="px-4 py-3 flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-gray-900">Sunday School Hub</h1>
+          <Link to="/dashboard" className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors">
+            Sunday School Hub
+          </Link>
           <button
             onClick={handleSignOut}
             className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1"
@@ -38,7 +40,9 @@ export function Layout() {
           <div className="flex flex-col flex-grow bg-white border-r border-gray-200 shadow-sm">
             {/* Sidebar Header */}
             <div className="flex items-center flex-shrink-0 px-6 py-4 border-b border-gray-200">
-              <h1 className="text-xl font-bold text-gray-900">Sunday School Hub</h1>
+              <Link to="/dashboard" className="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors">
+                Sunday School Hub
+              </Link>
             </div>
             
             {/* Navigation */}
