@@ -5,10 +5,16 @@ import { supabase, Song } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
 
-interface AIResult {
+interface SongResult {
   title: string
   lyrics: string
-  source?: string
+  source: string
+  url: string
+}
+
+interface AISearchResponse {
+  query: string
+  results: SongResult[]
 }
 
 export function Songs() {
@@ -21,10 +27,11 @@ export function Songs() {
 
   // AI Search states
   const [aiQuery, setAiQuery] = useState('')
-  const [aiResult, setAiResult] = useState<AIResult | null>(null)
+  const [aiResults, setAiResults] = useState<SongResult[]>([])
   const [aiLoading, setAiLoading] = useState(false)
   const [aiSaving, setAiSaving] = useState(false)
   const [aiError, setAiError] = useState('')
+  const [selectedSong, setSelectedSong] = useState<SongResult | null>(null)
 
   // Initialize Fuse.js with fuzzy search options
   const fuse = useMemo(() => {
@@ -91,7 +98,8 @@ export function Songs() {
 
     setAiLoading(true)
     setAiError('')
-    setAiResult(null)
+    setAiResults([])
+    setSelectedSong(null)
 
     try {
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-song-search`
@@ -105,13 +113,13 @@ export function Songs() {
         body: JSON.stringify({ query: aiQuery.trim() }),
       })
 
-      const data = await response.json()
+      const data: AISearchResponse = await response.json()
 
       if (!response.ok) {
         throw new Error(data.error || 'AI search failed')
       }
 
-      setAiResult(data)
+      setAiResults(data.results)
     } catch (err: any) {
       setAiError(err.message || 'Failed to search for song lyrics')
     } finally {
@@ -119,8 +127,12 @@ export function Songs() {
     }
   }
 
+  const handleSelectSong = (song: SongResult) => {
+    setSelectedSong(song)
+  }
+
   const handleSaveSong = async () => {
-    if (!aiResult || !user) {
+    if (!selectedSong || !user) {
       setAiError('Unable to save song. Please try again.')
       return
     }
@@ -133,8 +145,8 @@ export function Songs() {
         .from('songs')
         .insert([
           {
-            title: aiResult.title,
-            lyrics: aiResult.lyrics,
+            title: selectedSong.title,
+            lyrics: selectedSong.lyrics,
             user_id: user.id
           }
         ])
@@ -145,7 +157,8 @@ export function Songs() {
       await fetchSongs()
       
       // Clear AI search results
-      setAiResult(null)
+      setAiResults([])
+      setSelectedSong(null)
       setAiQuery('')
       
       alert('🎵 Song added to your library successfully!')
@@ -235,7 +248,7 @@ export function Songs() {
           <div className="bg-white/90 backdrop-blur-sm shadow-lg p-6 rounded-xl border border-white/50 mb-8">
             <h2 className="text-xl font-bold text-gray-900 mb-4 drop-shadow-sm">🎤 Can't find a song? Ask AI</h2>
             <p className="text-gray-700 mb-4 text-sm">
-              Use AI to search for Christian song lyrics from across the web. Just enter the song name and let our AI find the complete lyrics for you!
+              Use AI to search for Christian song lyrics from across the web. We'll find multiple versions for you to choose from!
             </p>
             
             <div className="space-y-4">
@@ -273,52 +286,86 @@ export function Songs() {
                 </div>
               )}
 
-              {aiResult && (
-                <div className="bg-blue-50/90 backdrop-blur-sm border border-blue-300 rounded-lg p-4 space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">{aiResult.title}</h3>
-                      {aiResult.source && (
-                        <p className="text-xs text-gray-600 mt-1">Source: {aiResult.source}</p>
-                      )}
+              {aiResults.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Found {aiResults.length} result{aiResults.length !== 1 ? 's' : ''} for "{aiQuery}":
+                  </h3>
+                  
+                  <div className="grid gap-4">
+                    {aiResults.map((song, index) => (
+                      <div
+                        key={index}
+                        className={`border rounded-lg p-4 cursor-pointer transition-all duration-200 ${
+                          selectedSong === song
+                            ? 'border-blue-500 bg-blue-50/90 backdrop-blur-sm'
+                            : 'border-gray-300 bg-white/80 backdrop-blur-sm hover:border-gray-400 hover:bg-white/90'
+                        }`}
+                        onClick={() => handleSelectSong(song)}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-gray-900 mb-1">{song.title}</h4>
+                            <p className="text-xs text-gray-600">Source: {song.source}</p>
+                          </div>
+                          <div className="flex items-center">
+                            {selectedSong === song && (
+                              <span className="text-blue-600 text-sm font-medium mr-2">✓ Selected</span>
+                            )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                window.open(song.url, '_blank')
+                              }}
+                              className="text-blue-600 hover:text-blue-800 text-sm"
+                              title="View original source"
+                            >
+                              🔗 Source
+                            </button>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-gray-50/80 backdrop-blur-sm rounded p-3 max-h-32 overflow-y-auto">
+                          <pre className="whitespace-pre-wrap text-xs font-serif text-gray-700 leading-relaxed">
+                            {truncateText(song.lyrics, 300)}
+                          </pre>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {selectedSong && (
+                    <div className="flex gap-3 pt-4 border-t border-gray-200">
+                      <button
+                        onClick={handleSaveSong}
+                        disabled={aiSaving}
+                        className="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium px-6 py-2 rounded-lg transition-colors duration-200 disabled:cursor-not-allowed"
+                      >
+                        {aiSaving ? (
+                          <span className="flex items-center">
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Saving...
+                          </span>
+                        ) : (
+                          '💾 Save Selected Song to Library'
+                        )}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setAiResults([])
+                          setSelectedSong(null)
+                          setAiQuery('')
+                          setAiError('')
+                        }}
+                        className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium px-4 py-2 rounded-lg transition-colors duration-200"
+                      >
+                        🔄 Search Again
+                      </button>
                     </div>
-                    <button
-                      onClick={handleSaveSong}
-                      disabled={aiSaving}
-                      className="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium px-4 py-2 rounded-lg transition-colors duration-200 disabled:cursor-not-allowed whitespace-nowrap"
-                    >
-                      {aiSaving ? (
-                        <span className="flex items-center">
-                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Saving...
-                        </span>
-                      ) : (
-                        '💾 Save to Library'
-                      )}
-                    </button>
-                  </div>
-                  
-                  <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 max-h-64 overflow-y-auto">
-                    <pre className="whitespace-pre-wrap text-sm font-serif leading-relaxed text-gray-800">
-                      {aiResult.lyrics}
-                    </pre>
-                  </div>
-                  
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => {
-                        setAiResult(null)
-                        setAiQuery('')
-                        setAiError('')
-                      }}
-                      className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium px-4 py-2 rounded-lg transition-colors duration-200"
-                    >
-                      🔄 Search Again
-                    </button>
-                  </div>
+                  )}
                 </div>
               )}
             </div>

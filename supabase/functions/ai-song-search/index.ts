@@ -2,13 +2,24 @@ import { corsHeaders } from '../_shared/cors.ts'
 
 const FIRECRAWL_API_KEY = Deno.env.get('FIRECRAWL_API_KEY')
 
+interface FirecrawlSearchResult {
+  url: string
+  title: string
+  content?: string
+  markdown?: string
+}
+
 interface FirecrawlResponse {
   success: boolean
-  data?: {
-    content?: string
-    markdown?: string
-  }
+  data?: FirecrawlSearchResult[]
   error?: string
+}
+
+interface SongResult {
+  title: string
+  lyrics: string
+  source: string
+  url: string
 }
 
 Deno.serve(async (req: Request) => {
@@ -66,7 +77,7 @@ Deno.serve(async (req: Request) => {
           onlyMainContent: true,
           includeHtml: false,
         },
-        limit: 3,
+        limit: 5,
       }),
     })
 
@@ -74,7 +85,7 @@ Deno.serve(async (req: Request) => {
       throw new Error(`Firecrawl search failed: ${searchResponse.statusText}`)
     }
 
-    const searchData = await searchResponse.json()
+    const searchData: FirecrawlResponse = await searchResponse.json()
 
     if (!searchData.success || !searchData.data || searchData.data.length === 0) {
       return new Response(
@@ -86,16 +97,43 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    // Extract lyrics from the first result
-    let lyrics = searchData.data[0].content || searchData.data[0].markdown || ''
-    
-    // Clean up the lyrics
-    lyrics = lyrics
-      .replace(/\n{3,}/g, '\n\n') // Replace multiple newlines with double newlines
-      .replace(/^\s+|\s+$/g, '') // Trim whitespace
-      .slice(0, 7000) // Limit to 7000 characters
+    // Process each search result
+    const songResults: SongResult[] = []
 
-    if (!lyrics || lyrics.length < 50) {
+    for (const result of searchData.data) {
+      let lyrics = result.content || result.markdown || ''
+      
+      // Clean up the lyrics
+      lyrics = lyrics
+        .replace(/\n{3,}/g, '\n\n') // Replace multiple newlines with double newlines
+        .replace(/^\s+|\s+$/g, '') // Trim whitespace
+        .slice(0, 5000) // Limit to 5000 characters per result
+
+      // Only include results with meaningful lyrics content
+      if (lyrics && lyrics.length > 100) {
+        // Extract a better title from the page title or use the query
+        let songTitle = result.title || query
+        
+        // Clean up the title (remove common website suffixes)
+        songTitle = songTitle
+          .replace(/\s*-\s*(Lyrics|Song|Hymn|Christian|Gospel).*$/i, '')
+          .replace(/\s*\|\s*.*$/i, '')
+          .trim()
+
+        if (!songTitle) {
+          songTitle = query
+        }
+
+        songResults.push({
+          title: songTitle,
+          lyrics: lyrics,
+          source: new URL(result.url).hostname,
+          url: result.url
+        })
+      }
+    }
+
+    if (songResults.length === 0) {
       return new Response(
         JSON.stringify({ error: 'Could not extract meaningful lyrics from search results' }),
         {
@@ -107,9 +145,8 @@ Deno.serve(async (req: Request) => {
 
     return new Response(
       JSON.stringify({
-        title: query,
-        lyrics: lyrics,
-        source: 'AI Search via Firecrawl'
+        query: query,
+        results: songResults
       }),
       {
         status: 200,
