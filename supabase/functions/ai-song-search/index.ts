@@ -64,100 +64,129 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    // Search for song lyrics using Firecrawl
-    const searchResponse = await fetch('https://api.firecrawl.dev/v0/search', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        query: `"${query}" Christian song lyrics full text`,
-        pageOptions: {
-          onlyMainContent: true,
-          includeHtml: false,
+    // Create AbortController for timeout handling
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 25000) // 25 second timeout
+
+    try {
+      // Search for song lyrics using Firecrawl
+      const searchResponse = await fetch('https://api.firecrawl.dev/v0/search', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
+          'Content-Type': 'application/json',
         },
-        limit: 5,
-      }),
-    })
+        body: JSON.stringify({
+          query: `"${query}" Christian song lyrics full text`,
+          pageOptions: {
+            onlyMainContent: true,
+            includeHtml: false,
+          },
+          limit: 5,
+        }),
+        signal: controller.signal,
+      })
 
-    if (!searchResponse.ok) {
-      throw new Error(`Firecrawl search failed: ${searchResponse.statusText}`)
-    }
+      clearTimeout(timeoutId)
 
-    const searchData: FirecrawlResponse = await searchResponse.json()
-
-    if (!searchData.success || !searchData.data || searchData.data.length === 0) {
-      return new Response(
-        JSON.stringify({ error: 'No lyrics found for this song' }),
-        {
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      )
-    }
-
-    // Process each search result
-    const songResults: SongResult[] = []
-
-    for (const result of searchData.data) {
-      // Skip results without a valid URL
-      if (!result.url || typeof result.url !== 'string' || result.url.trim() === '') {
-        continue
+      if (!searchResponse.ok) {
+        throw new Error(`Firecrawl search failed: ${searchResponse.statusText}`)
       }
 
-      let lyrics = result.content || result.markdown || ''
-      
-      // Clean up the lyrics
-      lyrics = lyrics
-        .replace(/\n{3,}/g, '\n\n') // Replace multiple newlines with double newlines
-        .replace(/^\s+|\s+$/g, '') // Trim whitespace
-        .slice(0, 5000) // Limit to 5000 characters per result
+      const searchData: FirecrawlResponse = await searchResponse.json()
 
-      // Only include results with meaningful lyrics content
-      if (lyrics && lyrics.length > 100) {
-        // Extract a better title from the page title or use the query
-        let songTitle = result.title || query
+      if (!searchData.success || !searchData.data || searchData.data.length === 0) {
+        return new Response(
+          JSON.stringify({ error: 'No lyrics found for this song' }),
+          {
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+
+      // Process each search result
+      const songResults: SongResult[] = []
+
+      for (const result of searchData.data) {
+        // Skip results without a valid URL
+        if (!result.url || typeof result.url !== 'string' || result.url.trim() === '') {
+          continue
+        }
+
+        let lyrics = result.content || result.markdown || ''
         
-        // Clean up the title (remove common website suffixes)
-        songTitle = songTitle
-          .replace(/\s*-\s*(Lyrics|Song|Hymn|Christian|Gospel).*$/i, '')
-          .replace(/\s*\|\s*.*$/i, '')
-          .trim()
+        // Clean up the lyrics
+        lyrics = lyrics
+          .replace(/\n{3,}/g, '\n\n') // Replace multiple newlines with double newlines
+          .replace(/^\s+|\s+$/g, '') // Trim whitespace
+          .slice(0, 5000) // Limit to 5000 characters per result
 
-        if (!songTitle) {
-          songTitle = query
+        // Only include results with meaningful lyrics content
+        if (lyrics && lyrics.length > 100) {
+          // Extract a better title from the page title or use the query
+          let songTitle = result.title || query
+          
+          // Clean up the title (remove common website suffixes)
+          songTitle = songTitle
+            .replace(/\s*-\s*(Lyrics|Song|Hymn|Christian|Gospel).*$/i, '')
+            .replace(/\s*\|\s*.*$/i, '')
+            .trim()
+
+          if (!songTitle) {
+            songTitle = query
+          }
+
+          songResults.push({
+            title: songTitle,
+            lyrics: lyrics,
+            source: new URL(result.url).hostname,
+            url: result.url
+          })
         }
-
-        songResults.push({
-          title: songTitle,
-          lyrics: lyrics,
-          source: new URL(result.url).hostname,
-          url: result.url
-        })
       }
-    }
 
-    if (songResults.length === 0) {
+      if (songResults.length === 0) {
+        return new Response(
+          JSON.stringify({ error: 'Could not extract meaningful lyrics from search results' }),
+          {
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+
       return new Response(
-        JSON.stringify({ error: 'Could not extract meaningful lyrics from search results' }),
+        JSON.stringify({
+          query: query,
+          results: songResults
+        }),
         {
-          status: 404,
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       )
-    }
 
-    return new Response(
-      JSON.stringify({
-        query: query,
-        results: songResults
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    } catch (fetchError) {
+      clearTimeout(timeoutId)
+      
+      // Handle specific timeout error
+      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+        return new Response(
+          JSON.stringify({
+            error: 'Search request timed out',
+            details: 'The external API took too long to respond. Please try again.'
+          }),
+          {
+            status: 504,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
       }
-    )
+      
+      // Re-throw other fetch errors to be handled by outer catch
+      throw fetchError
+    }
 
   } catch (error) {
     console.error('AI Song Search Error:', error)
