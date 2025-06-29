@@ -20,8 +20,7 @@ export function Songs() {
     } else {
       const filtered = songs.filter(song =>
         song.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        song.lyrics.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        song.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+        song.lyrics.toLowerCase().includes(searchTerm.toLowerCase())
       )
       setFilteredSongs(filtered)
     }
@@ -32,7 +31,7 @@ export function Songs() {
       const { data, error } = await supabase
         .from('songs')
         .select('*')
-        .order('title')
+        .order('created_at', { ascending: false })
 
       if (error) throw error
       
@@ -43,6 +42,11 @@ export function Songs() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const truncateText = (text: string, maxLength: number = 150) => {
+    if (text.length <= maxLength) return text
+    return text.substring(0, maxLength) + '...'
   }
 
   if (loading) {
@@ -77,19 +81,27 @@ export function Songs() {
     <ChildFriendlyBackground>
       <div className="p-6 pb-20 lg:pb-6">
         <div className="max-w-4xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 drop-shadow-sm">Songs 🎵</h1>
-            <p className="mt-2 text-gray-700 drop-shadow-sm">
-              Browse and search our collection of Sunday school songs
-            </p>
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 drop-shadow-sm">Songs 🎵</h1>
+              <p className="mt-2 text-gray-700 drop-shadow-sm">
+                Browse and search our collection of Sunday school songs
+              </p>
+            </div>
+            <Link
+              to="/dashboard/songs/upload"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-center whitespace-nowrap"
+            >
+              ➕ Upload New Song
+            </Link>
           </div>
 
           <div className="mb-6">
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search songs by title, lyrics, or tags... 🔍"
-                className="w-full px-3 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
+                placeholder="Search songs by title or lyrics... 🔍"
+                className="w-full px-3 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -107,47 +119,50 @@ export function Songs() {
               <h3 className="text-lg font-medium text-gray-900 mb-2 drop-shadow-sm">
                 {searchTerm ? 'No songs found' : 'No songs available'}
               </h3>
-              <p className="text-gray-700">
+              <p className="text-gray-700 mb-4">
                 {searchTerm 
                   ? 'Try adjusting your search terms'
-                  : 'Songs will appear here once they are added to the database'
+                  : 'Start building your song collection by uploading your first song!'
                 }
               </p>
+              {!searchTerm && (
+                <Link
+                  to="/dashboard/songs/upload"
+                  className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                >
+                  ➕ Upload First Song
+                </Link>
+              )}
             </div>
           ) : (
             <div className="grid gap-4">
               {filteredSongs.map((song) => (
-                <Link
+                <div
                   key={song.id}
-                  to={`/dashboard/songs/${song.id}`}
-                  className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 border border-white/50 hover:shadow-xl transition-all duration-300 cursor-pointer hover:bg-white/95 hover:scale-[1.02]"
+                  className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 border border-white/50 hover:shadow-xl transition-all duration-300 hover:bg-white/95 hover:scale-[1.02]"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-gray-900 mb-2 drop-shadow-sm">
                         {song.title}
                       </h3>
-                      <p className="text-gray-700 text-sm line-clamp-2 mb-3">
-                        {song.lyrics.substring(0, 150)}...
+                      <p className="text-gray-700 text-sm mb-3 leading-relaxed">
+                        {truncateText(song.lyrics)}
                       </p>
-                      <div className="flex flex-wrap gap-2">
-                        {song.tags.map((tag, index) => (
-                          <span
-                            key={index}
-                            className="inline-block bg-blue-100/80 text-blue-800 text-xs px-2 py-1 rounded-full backdrop-blur-sm"
-                          >
-                            {tag}
-                          </span>
-                        ))}
+                      <div className="text-xs text-gray-500">
+                        Added {new Date(song.created_at).toLocaleDateString()}
                       </div>
                     </div>
-                    <div className="ml-4 text-gray-400">
-                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+                    <div className="ml-4 flex flex-col gap-2">
+                      <Link
+                        to={`/dashboard/songs/${song.id}`}
+                        className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-center whitespace-nowrap"
+                      >
+                        👁️ View
+                      </Link>
                     </div>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           )}

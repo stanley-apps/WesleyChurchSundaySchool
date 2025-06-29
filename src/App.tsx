@@ -7,6 +7,7 @@ import { Login } from './pages/Login'
 import { Dashboard } from './pages/Dashboard'
 import { Songs } from './pages/Songs'
 import { SongDetail } from './pages/SongDetail'
+import { SongUpload } from './pages/SongUpload'
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
           >
             <Route index element={<Dashboard />} />
             <Route path="songs" element={<Songs />} />
+            <Route path="songs/upload" element={<SongUpload />} />
             <Route path="songs/:id" element={<SongDetail />} />
           </Route>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

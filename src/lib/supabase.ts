@@ -13,5 +13,6 @@ export type Song = {
   id: string
   title: string
   lyrics: string
-  tags: string[]
+  user_id: string
+  created_at: string
 }
