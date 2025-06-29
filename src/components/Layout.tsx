@@ -11,7 +11,7 @@ export function Layout() {
     { name: 'Songs', href: '/dashboard/songs', icon: '🎵' },
     { name: 'Lessons', href: '#', icon: '📚', disabled: true },
     { name: 'Games', href: '#', icon: '🎮', disabled: true },
-    { name: 'Videos', href: '#', icon: '🎬', disabled: true },
+    { name: 'Videos', href: '#', icon: '🎥', disabled: true },
   ]
 
   const handleSignOut = async () => {
@@ -26,9 +26,9 @@ export function Layout() {
           <h1 className="text-lg font-semibold text-gray-900">Sunday School Hub</h1>
           <button
             onClick={handleSignOut}
-            className="text-sm text-gray-600 hover:text-gray-900"
+            className="text-sm text-gray-600 hover:text-gray-900 flex items-center"
           >
-            Sign Out
+            🔓 Sign Out
           </button>
         </div>
       </div>
@@ -36,7 +36,7 @@ export function Layout() {
       <div className="lg:flex">
         {/* Sidebar */}
         <div className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0">
-          <div className="flex flex-col flex-grow bg-white border-r border-gray-200">
+          <div className="flex flex-col flex-grow bg-white border-r border-gray-200 shadow-sm">
             <div className="flex items-center flex-shrink-0 px-6 py-4 border-b border-gray-200">
               <h1 className="text-xl font-bold text-gray-900">Sunday School Hub</h1>
             </div>
@@ -51,12 +51,12 @@ export function Layout() {
                     return (
                       <div
                         key={item.name}
-                        className="flex items-center px-3 py-2 text-sm font-medium text-gray-400 cursor-not-allowed"
+                        className="flex items-center px-3 py-2 text-sm font-medium text-gray-400 cursor-not-allowed rounded-md"
                       >
                         <span className="mr-3">{item.icon}</span>
                         {item.name}
                         <span className="ml-auto text-xs bg-gray-100 px-2 py-1 rounded">
-                          Soon
+                          Coming Soon
                         </span>
                       </div>
                     )
@@ -80,17 +80,17 @@ export function Layout() {
               </nav>
               
               <div className="flex-shrink-0 px-4 py-4 border-t border-gray-200">
-                <div className="flex items-center">
+                <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">
-                      {user?.phone || user?.email}
+                      {user?.email}
                     </p>
                   </div>
                   <button
                     onClick={handleSignOut}
-                    className="ml-3 text-sm text-gray-600 hover:text-gray-900"
+                    className="ml-3 text-sm text-gray-600 hover:text-gray-900 flex items-center"
                   >
-                    Sign Out
+                    🔓 Sign Out
                   </button>
                 </div>
               </div>
@@ -107,7 +107,7 @@ export function Layout() {
       </div>
 
       {/* Mobile bottom navigation */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg">
         <nav className="flex">
           {navigation.slice(0, 4).map((item) => {
             const isActive = location.pathname === item.href
@@ -129,8 +129,8 @@ export function Layout() {
               <Link
                 key={item.name}
                 to={item.href}
-                className={`flex-1 flex flex-col items-center py-2 ${
-                  isActive ? 'text-blue-600' : 'text-gray-600'
+                className={`flex-1 flex flex-col items-center py-2 transition-colors ${
+                  isActive ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 <span className="text-lg">{item.icon}</span>
