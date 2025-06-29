@@ -105,7 +105,7 @@ export function SongUpload() {
                   <ul className="text-xs space-y-1">
                     <li>• Use **bold text** for emphasis</li>
                     <li>• Use # Heading for verse titles</li>
-                    <li>• Use > for chorus indentation</li>
+                    <li>• Use {'>'} for chorus indentation</li>
                     <li>• Leave blank lines between verses</li>
                   </ul>
                 </div>
