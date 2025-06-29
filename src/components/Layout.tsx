@@ -23,7 +23,7 @@ export function Layout() {
       <div className="lg:hidden bg-white shadow-sm border-b">
         <div className="px-4 py-3 flex items-center justify-between">
           <Link to="/dashboard" className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors">
-            Sunday School Hub
+            Wesley Church Sunday School Hub
           </Link>
           <button
             onClick={handleSignOut}
@@ -41,7 +41,7 @@ export function Layout() {
             {/* Sidebar Header */}
             <div className="flex items-center flex-shrink-0 px-6 py-4 border-b border-gray-200">
               <Link to="/dashboard" className="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors">
-                Sunday School Hub
+                Wesley Church Sunday School Hub
               </Link>
             </div>
             
