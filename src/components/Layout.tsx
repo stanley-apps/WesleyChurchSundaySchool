@@ -17,6 +17,17 @@ export function Layout() {
     await signOut()
   }
 
+  // Helper function to determine if a navigation item is active
+  const isActiveRoute = (href: string) => {
+    if (href === '/dashboard') {
+      // Dashboard is active only on exact match or when no other nav item matches
+      return location.pathname === '/dashboard' || 
+             (location.pathname.startsWith('/dashboard') && 
+              !navigation.some(nav => nav.href !== '/dashboard' && nav.href !== '#' && location.pathname.startsWith(nav.href)))
+    }
+    return location.pathname.startsWith(href) && href !== '#'
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Mobile header */}
@@ -49,7 +60,7 @@ export function Layout() {
             <div className="flex-1 flex flex-col overflow-y-auto">
               <nav className="flex-1 px-4 py-4 space-y-1">
                 {navigation.map((item) => {
-                  const isActive = location.pathname === item.href
+                  const isActive = isActiveRoute(item.href)
                   const isDisabled = item.disabled
                   
                   if (isDisabled) {
@@ -116,7 +127,7 @@ export function Layout() {
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg">
         <nav className="flex">
           {navigation.slice(0, 4).map((item) => {
-            const isActive = location.pathname === item.href
+            const isActive = isActiveRoute(item.href)
             const isDisabled = item.disabled
             
             if (isDisabled) {
