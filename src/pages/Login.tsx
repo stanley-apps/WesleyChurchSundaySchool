@@ -7,7 +7,8 @@ export function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { user, signIn } = useAuth()
+  const [showSignup, setShowSignup] = useState(false)
+  const { user, signIn, signUp } = useAuth()
 
   if (user) {
     return <Navigate to="/dashboard" replace />
@@ -18,10 +19,18 @@ export function Login() {
     setError('')
     setLoading(true)
 
-    const { error } = await signIn(phone, password)
+    const { error } = showSignup 
+      ? await signUp(phone, password)
+      : await signIn(phone, password)
     
     if (error) {
       setError(error.message)
+    } else if (showSignup) {
+      setError('')
+      alert('Demo user created successfully! You can now sign in.')
+      setShowSignup(false)
+      setPhone('')
+      setPassword('')
     }
     
     setLoading(false)
@@ -35,7 +44,7 @@ export function Login() {
             Sunday School Hub
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Sign in to access your dashboard
+            {showSignup ? 'Create demo user account' : 'Sign in to access your dashboard'}
           </p>
         </div>
         
@@ -86,7 +95,17 @@ export function Login() {
               disabled={loading}
               className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? (showSignup ? 'Creating...' : 'Signing in...') : (showSignup ? 'Create Demo User' : 'Sign In')}
+            </button>
+          </div>
+
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => setShowSignup(!showSignup)}
+              className="text-sm text-blue-600 hover:text-blue-800"
+            >
+              {showSignup ? 'Already have an account? Sign in' : 'Need to create demo user? Click here'}
             </button>
           </div>
           
@@ -101,4 +120,4 @@ export function Login() {
       </div>
     </div>
   )
-}
+</div>
