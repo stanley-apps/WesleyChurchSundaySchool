@@ -25,3 +25,55 @@
     @apply bg-white rounded-lg shadow-md p-6 border border-gray-100;
   }
 }
+
+@layer utilities {
+  /* Floating animations for bubbles */
+  @keyframes float-0 {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    33% { transform: translateY(-20px) rotate(120deg); }
+    66% { transform: translateY(10px) rotate(240deg); }
+  }
+  
+  @keyframes float-1 {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-30px) rotate(180deg); }
+  }
+  
+  @keyframes float-2 {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    25% { transform: translateY(-15px) rotate(90deg); }
+    75% { transform: translateY(15px) rotate(270deg); }
+  }
+  
+  .animate-float-0 {
+    animation: float-0 8s ease-in-out infinite;
+  }
+  
+  .animate-float-1 {
+    animation: float-1 10s ease-in-out infinite;
+  }
+  
+  .animate-float-2 {
+    animation: float-2 12s ease-in-out infinite;
+  }
+  
+  /* Twinkling animation for stars */
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.2); }
+  }
+  
+  .animate-twinkle {
+    animation: twinkle 2s ease-in-out infinite;
+  }
+  
+  /* Gentle bounce for rainbow elements */
+  @keyframes gentle-bounce {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+  
+  .animate-gentle-bounce {
+    animation: gentle-bounce 3s ease-in-out infinite;
+  }
+}
