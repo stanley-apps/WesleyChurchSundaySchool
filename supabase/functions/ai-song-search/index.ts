@@ -52,6 +52,8 @@ function extractLyricsFromText(text: string): string {
 }
 
 Deno.serve(async (req: Request) => {
+  console.log(`${req.method} ${req.url}`)
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -83,14 +85,17 @@ Deno.serve(async (req: Request) => {
       )
     }
 
+    console.log('Searching for:', query)
+
     let songResults: SongResult[] = []
 
     // Step 1: Try Firecrawl AI Search (if API key is available)
     if (FIRECRAWL_API_KEY) {
+      console.log('Trying Firecrawl search...')
       try {
         // Create AbortController for timeout handling
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 12000) // 12 second timeout
 
         const searchResponse = await fetch('https://api.firecrawl.dev/v0/search', {
           method: 'POST',
@@ -113,6 +118,7 @@ Deno.serve(async (req: Request) => {
 
         if (searchResponse.ok) {
           const searchData: FirecrawlResponse = await searchResponse.json()
+          console.log('Firecrawl response:', searchData.success, searchData.data?.length || 0, 'results')
 
           if (searchData.success && searchData.data && searchData.data.length > 0) {
             // Process each search result
@@ -151,15 +157,20 @@ Deno.serve(async (req: Request) => {
               }
             }
           }
+        } else {
+          console.log('Firecrawl API error:', searchResponse.status, await searchResponse.text())
         }
       } catch (firecrawlError) {
-        console.log('Firecrawl search failed, trying fallback:', firecrawlError)
+        console.log('Firecrawl search failed:', firecrawlError)
         // Continue to fallback - don't return error yet
       }
+    } else {
+      console.log('No Firecrawl API key, skipping to fallback')
     }
 
     // Step 2: Fallback to lyrics.ovh (free API) if no results from Firecrawl
     if (songResults.length === 0) {
+      console.log('Trying lyrics.ovh fallback...')
       try {
         // lyrics.ovh expects artist/song format, but we'll try with just the query
         const fallbackResponse = await fetch(
@@ -174,6 +185,7 @@ Deno.serve(async (req: Request) => {
 
         if (fallbackResponse.ok) {
           const fallbackData: LyricsOvhResponse = await fallbackResponse.json()
+          console.log('Lyrics.ovh response:', fallbackData.lyrics ? 'found lyrics' : 'no lyrics')
 
           if (fallbackData.lyrics && fallbackData.lyrics.length > 50) {
             songResults.push({
@@ -183,12 +195,16 @@ Deno.serve(async (req: Request) => {
               url: 'https://lyrics.ovh'
             })
           }
+        } else {
+          console.log('Lyrics.ovh API error:', fallbackResponse.status)
         }
       } catch (fallbackError) {
         console.log('Fallback API also failed:', fallbackError)
         // Continue - we'll return an error below if no results
       }
     }
+
+    console.log('Total results found:', songResults.length)
 
     // Return results or error
     if (songResults.length === 0) {

@@ -32,6 +32,7 @@ export function Songs() {
   const [aiSaving, setAiSaving] = useState(false)
   const [aiError, setAiError] = useState('')
   const [selectedSong, setSelectedSong] = useState<SongResult | null>(null)
+  const [aiAvailable, setAiAvailable] = useState(true)
 
   // Initialize Fuse.js with fuzzy search options
   const fuse = useMemo(() => {
@@ -113,6 +114,12 @@ export function Songs() {
         body: JSON.stringify({ query: aiQuery.trim() }),
       })
 
+      if (response.status === 404) {
+        setAiAvailable(false)
+        setAiError('AI search is currently unavailable. The service is being deployed. Please try again in a few minutes or use manual upload.')
+        return
+      }
+
       const data: AISearchResponse = await response.json()
 
       if (!response.ok) {
@@ -120,8 +127,16 @@ export function Songs() {
       }
 
       setAiResults(data.results)
+      if (data.results.length === 0) {
+        setAiError('No lyrics found for this song. Try a different song name or check spelling.')
+      }
     } catch (err: any) {
-      setAiError(err.message || 'Failed to search for song lyrics')
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        setAiAvailable(false)
+        setAiError('AI search service is currently unavailable. Please try again later or use manual upload.')
+      } else {
+        setAiError(err.message || 'Failed to search for song lyrics')
+      }
     } finally {
       setAiLoading(false)
     }
@@ -251,6 +266,13 @@ export function Songs() {
               Use AI to search for Christian song lyrics from across the web. We'll find multiple versions for you to choose from!
             </p>
             
+            {!aiAvailable && (
+              <div className="bg-yellow-200 border border-yellow-300 text-yellow-800 px-4 py-3 rounded-lg mb-4 text-sm">
+                ⚠️ <strong>AI Search Temporarily Unavailable:</strong> The AI search service is currently being deployed. 
+                Please try again in a few minutes or use the manual upload option below.
+              </div>
+            )}
+            
             <div className="space-y-4">
               <div className="flex gap-3">
                 <input
@@ -259,11 +281,12 @@ export function Songs() {
                   placeholder="e.g., Way Maker, Amazing Grace, How Great Thou Art..."
                   value={aiQuery}
                   onChange={(e) => setAiQuery(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && !aiLoading && handleAIRequest()}
+                  onKeyPress={(e) => e.key === 'Enter' && !aiLoading && aiAvailable && handleAIRequest()}
+                  disabled={!aiAvailable}
                 />
                 <button
                   onClick={handleAIRequest}
-                  disabled={aiLoading || !aiQuery.trim()}
+                  disabled={aiLoading || !aiQuery.trim() || !aiAvailable}
                   className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium px-6 py-2 rounded-lg transition-colors duration-200 disabled:cursor-not-allowed whitespace-nowrap"
                 >
                   {aiLoading ? (
@@ -430,15 +453,17 @@ export function Songs() {
                   >
                     ➕ Upload First Song
                   </Link>
-                  <button
-                    onClick={() => {
-                      setAiQuery('Amazing Grace')
-                      handleAIRequest()
-                    }}
-                    className="inline-block bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
-                  >
-                    🤖 Try AI Search
-                  </button>
+                  {aiAvailable && (
+                    <button
+                      onClick={() => {
+                        setAiQuery('Amazing Grace')
+                        handleAIRequest()
+                      }}
+                      className="inline-block bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                    >
+                      🤖 Try AI Search
+                    </button>
+                  )}
                 </div>
               )}
               {searchTerm && (
