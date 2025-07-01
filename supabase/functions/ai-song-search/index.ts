@@ -22,10 +22,6 @@ interface SongResult {
   url: string
 }
 
-interface LyricsOvhResponse {
-  lyrics?: string
-}
-
 function extractLyricsFromText(text: string): string {
   const lines = text.split('\n')
   const lyricsBlocks: string[] = []
@@ -83,119 +79,104 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    let songResults: SongResult[] = []
+    if (!FIRECRAWL_API_KEY) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'AI search not configured',
+          details: 'Firecrawl API key is not set up'
+        }),
+        {
+          status: 503,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
 
-    // Step 1: Try Firecrawl AI Search (if API key is available)
-    if (FIRECRAWL_API_KEY) {
-      try {
-        // Create AbortController for timeout handling
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 20000) // 20 second timeout
+    // Search for Christian song lyrics using Firecrawl
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
 
-        const searchResponse = await fetch('https://api.firecrawl.dev/v0/search', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            query: `"${query}" Christian song lyrics full text`,
-            pageOptions: {
-              onlyMainContent: true,
-              includeHtml: false,
-            },
-            limit: 5,
-          }),
-          signal: controller.signal,
+    const searchResponse = await fetch('https://api.firecrawl.dev/v0/search', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: `"${query}" Christian song lyrics full text`,
+        pageOptions: {
+          onlyMainContent: true,
+          includeHtml: false,
+        },
+        limit: 5,
+      }),
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeoutId)
+
+    if (!searchResponse.ok) {
+      throw new Error(`Firecrawl API error: ${searchResponse.status}`)
+    }
+
+    const searchData: FirecrawlResponse = await searchResponse.json()
+
+    if (!searchData.success || !searchData.data || searchData.data.length === 0) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'No lyrics found',
+          details: 'Could not find any song lyrics for this search term'
+        }),
+        {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    const songResults: SongResult[] = []
+
+    // Process each search result
+    for (const result of searchData.data) {
+      // Skip results without a valid URL
+      if (!result.url || typeof result.url !== 'string' || result.url.trim() === '') {
+        continue
+      }
+
+      let lyrics = result.content || result.markdown || ''
+      
+      // Use the extraction function to get clean lyrics
+      const extractedLyrics = extractLyricsFromText(lyrics)
+      
+      // Only include results with meaningful lyrics content
+      if (extractedLyrics && extractedLyrics.length > 100) {
+        // Extract a better title from the page title or use the query
+        let songTitle = result.title || query
+        
+        // Clean up the title (remove common website suffixes)
+        songTitle = songTitle
+          .replace(/\s*-\s*(Lyrics|Song|Hymn|Christian|Gospel).*$/i, '')
+          .replace(/\s*\|\s*.*$/i, '')
+          .trim()
+
+        if (!songTitle) {
+          songTitle = query
+        }
+
+        songResults.push({
+          title: songTitle,
+          lyrics: extractedLyrics.slice(0, 5000), // Limit to 5000 characters
+          source: new URL(result.url).hostname,
+          url: result.url
         })
-
-        clearTimeout(timeoutId)
-
-        if (searchResponse.ok) {
-          const searchData: FirecrawlResponse = await searchResponse.json()
-
-          if (searchData.success && searchData.data && searchData.data.length > 0) {
-            // Process each search result
-            for (const result of searchData.data) {
-              // Skip results without a valid URL
-              if (!result.url || typeof result.url !== 'string' || result.url.trim() === '') {
-                continue
-              }
-
-              let lyrics = result.content || result.markdown || ''
-              
-              // Use the extraction function to get clean lyrics
-              const extractedLyrics = extractLyricsFromText(lyrics)
-              
-              // Only include results with meaningful lyrics content
-              if (extractedLyrics && extractedLyrics.length > 100) {
-                // Extract a better title from the page title or use the query
-                let songTitle = result.title || query
-                
-                // Clean up the title (remove common website suffixes)
-                songTitle = songTitle
-                  .replace(/\s*-\s*(Lyrics|Song|Hymn|Christian|Gospel).*$/i, '')
-                  .replace(/\s*\|\s*.*$/i, '')
-                  .trim()
-
-                if (!songTitle) {
-                  songTitle = query
-                }
-
-                songResults.push({
-                  title: songTitle,
-                  lyrics: extractedLyrics.slice(0, 5000), // Limit to 5000 characters
-                  source: new URL(result.url).hostname,
-                  url: result.url
-                })
-              }
-            }
-          }
-        }
-      } catch (firecrawlError) {
-        console.log('Firecrawl search failed, trying fallback:', firecrawlError)
-        // Continue to fallback - don't return error yet
       }
     }
 
-    // Step 2: Fallback to lyrics.ovh (free API) if no results from Firecrawl
-    if (songResults.length === 0) {
-      try {
-        // lyrics.ovh expects artist/song format, but we'll try with just the query
-        const fallbackResponse = await fetch(
-          `https://api.lyrics.ovh/v1//${encodeURIComponent(query)}`,
-          {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-            },
-          }
-        )
-
-        if (fallbackResponse.ok) {
-          const fallbackData: LyricsOvhResponse = await fallbackResponse.json()
-
-          if (fallbackData.lyrics && fallbackData.lyrics.length > 50) {
-            songResults.push({
-              title: query,
-              lyrics: fallbackData.lyrics.trim(),
-              source: 'lyrics.ovh',
-              url: 'https://lyrics.ovh'
-            })
-          }
-        }
-      } catch (fallbackError) {
-        console.log('Fallback API also failed:', fallbackError)
-        // Continue - we'll return an error below if no results
-      }
-    }
-
-    // Return results or error
     if (songResults.length === 0) {
       return new Response(
         JSON.stringify({ 
-          error: 'Could not find lyrics for this song',
-          details: 'Both AI search and fallback API returned no results. Try a different song name or check spelling.'
+          error: 'No meaningful lyrics found',
+          details: 'Found search results but could not extract readable lyrics content'
         }),
         {
           status: 404,
@@ -221,7 +202,7 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         error: 'AI search failed',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : 'Unknown error occurred'
       }),
       {
         status: 500,
