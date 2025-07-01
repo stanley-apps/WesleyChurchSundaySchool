@@ -23,6 +23,8 @@ interface SongResult {
 }
 
 function extractLyricsFromText(text: string): string {
+  console.log('Extracting lyrics from text of length:', text.length)
+  
   const lines = text.split('\n')
   const lyricsBlocks: string[] = []
   let buffer: string[] = []
@@ -34,17 +36,26 @@ function extractLyricsFromText(text: string): string {
       trimmed.length < 4 ||
       /^[\w\s]+:/.test(trimmed) // ignore metadata lines
     ) {
-      if (buffer.length >= 4) lyricsBlocks.push(buffer.join('\n'))
+      if (buffer.length >= 4) {
+        lyricsBlocks.push(buffer.join('\n'))
+        console.log('Found lyrics block of length:', buffer.join('\n').length)
+      }
       buffer = []
     } else {
       buffer.push(trimmed)
     }
   }
 
-  if (buffer.length >= 4) lyricsBlocks.push(buffer.join('\n'))
+  if (buffer.length >= 4) {
+    lyricsBlocks.push(buffer.join('\n'))
+    console.log('Found final lyrics block of length:', buffer.join('\n').length)
+  }
 
   // Sort by longest lyrics block and return the best one
-  return lyricsBlocks.sort((a, b) => b.length - a.length)[0] || ''
+  const bestBlock = lyricsBlocks.sort((a, b) => b.length - a.length)[0] || ''
+  console.log('Best lyrics block length:', bestBlock.length)
+  
+  return bestBlock
 }
 
 Deno.serve(async (req: Request) => {
@@ -68,8 +79,10 @@ Deno.serve(async (req: Request) => {
 
   try {
     const { query } = await req.json()
+    console.log('Received search query:', query)
 
     if (!query || typeof query !== 'string') {
+      console.log('Invalid query parameter')
       return new Response(
         JSON.stringify({ error: 'Query parameter is required' }),
         {
@@ -80,6 +93,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (!FIRECRAWL_API_KEY) {
+      console.log('Firecrawl API key not found')
       return new Response(
         JSON.stringify({ 
           error: 'AI search not configured',
@@ -92,9 +106,14 @@ Deno.serve(async (req: Request) => {
       )
     }
 
+    console.log('Firecrawl API key found, making search request...')
+
     // Search for Christian song lyrics using Firecrawl
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+
+    const searchQuery = `"${query}" Christian song lyrics full text`
+    console.log('Search query being sent to Firecrawl:', searchQuery)
 
     const searchResponse = await fetch('https://api.firecrawl.dev/v0/search', {
       method: 'POST',
@@ -103,7 +122,7 @@ Deno.serve(async (req: Request) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        query: `"${query}" Christian song lyrics full text`,
+        query: searchQuery,
         pageOptions: {
           onlyMainContent: true,
           includeHtml: false,
@@ -114,14 +133,33 @@ Deno.serve(async (req: Request) => {
     })
 
     clearTimeout(timeoutId)
+    console.log('Firecrawl response status:', searchResponse.status)
 
     if (!searchResponse.ok) {
-      throw new Error(`Firecrawl API error: ${searchResponse.status}`)
+      const errorText = await searchResponse.text()
+      console.log('Firecrawl error response:', errorText)
+      throw new Error(`Firecrawl API error: ${searchResponse.status} - ${errorText}`)
     }
 
     const searchData: FirecrawlResponse = await searchResponse.json()
+    console.log('Firecrawl response data:', JSON.stringify(searchData, null, 2))
 
-    if (!searchData.success || !searchData.data || searchData.data.length === 0) {
+    if (!searchData.success) {
+      console.log('Firecrawl returned success: false')
+      return new Response(
+        JSON.stringify({ 
+          error: 'Search failed',
+          details: searchData.error || 'Firecrawl search was not successful'
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    if (!searchData.data || searchData.data.length === 0) {
+      console.log('No search results returned from Firecrawl')
       return new Response(
         JSON.stringify({ 
           error: 'No lyrics found',
@@ -134,19 +172,32 @@ Deno.serve(async (req: Request) => {
       )
     }
 
+    console.log('Processing', searchData.data.length, 'search results...')
+
     const songResults: SongResult[] = []
 
     // Process each search result
-    for (const result of searchData.data) {
+    for (let i = 0; i < searchData.data.length; i++) {
+      const result = searchData.data[i]
+      console.log(`Processing result ${i + 1}:`, {
+        url: result.url,
+        title: result.title,
+        contentLength: result.content?.length || 0,
+        markdownLength: result.markdown?.length || 0
+      })
+
       // Skip results without a valid URL
       if (!result.url || typeof result.url !== 'string' || result.url.trim() === '') {
+        console.log(`Skipping result ${i + 1}: invalid URL`)
         continue
       }
 
       let lyrics = result.content || result.markdown || ''
+      console.log(`Result ${i + 1} raw text length:`, lyrics.length)
       
       // Use the extraction function to get clean lyrics
       const extractedLyrics = extractLyricsFromText(lyrics)
+      console.log(`Result ${i + 1} extracted lyrics length:`, extractedLyrics.length)
       
       // Only include results with meaningful lyrics content
       if (extractedLyrics && extractedLyrics.length > 100) {
@@ -163,16 +214,27 @@ Deno.serve(async (req: Request) => {
           songTitle = query
         }
 
+        console.log(`Adding result ${i + 1} to final results:`, {
+          title: songTitle,
+          lyricsLength: extractedLyrics.length,
+          source: new URL(result.url).hostname
+        })
+
         songResults.push({
           title: songTitle,
           lyrics: extractedLyrics.slice(0, 5000), // Limit to 5000 characters
           source: new URL(result.url).hostname,
           url: result.url
         })
+      } else {
+        console.log(`Skipping result ${i + 1}: lyrics too short (${extractedLyrics.length} chars)`)
       }
     }
 
+    console.log('Final song results count:', songResults.length)
+
     if (songResults.length === 0) {
+      console.log('No meaningful lyrics found in any results')
       return new Response(
         JSON.stringify({ 
           error: 'No meaningful lyrics found',
@@ -184,6 +246,8 @@ Deno.serve(async (req: Request) => {
         }
       )
     }
+
+    console.log('Returning successful response with', songResults.length, 'results')
 
     return new Response(
       JSON.stringify({
@@ -206,7 +270,7 @@ Deno.serve(async (req: Request) => {
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
   }
