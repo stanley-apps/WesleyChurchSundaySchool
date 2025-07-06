@@ -124,7 +124,7 @@ Deno.serve(async (req: Request) => {
             // Process each search result
             for (const result of searchData.data) {
               // Skip results without a valid URL
-              if (!result.url || typeof result.url !== 'string' || result.url.trim() === '') {
+              if (!result.url || typeof result.url !== 'string' || result.url.trim() === '' || result.url === 'undefined') {
                 continue
               }
 
