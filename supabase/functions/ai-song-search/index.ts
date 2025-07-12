@@ -1,40 +1,62 @@
 import { corsHeaders } from '../_shared/cors.ts'
 
-interface SongResult {
-  title: string
-  lyrics: string
-  source: string
+// Set your Firecrawl API key as an environment variable FIRECRAWL_API_KEY
+const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
+
+interface WebLink {
+  name: string
   url: string
+  snippet: string
 }
 
-interface LyricsOvhResponse {
-  lyrics?: string
-}
-
-// Parse queries like "How Great Thou Art - Alan Jackson" or "How Great Thou Art by Alan Jackson"
-function parseQuery(query: string): { artist: string, title: string } | null {
-  let match = query.match(/^(.*?)\s*(?:-|by)\s*(.*)$/i)
-  if (match && match[1] && match[2]) {
-    return { artist: match[2].trim(), title: match[1].trim() }
+function formatMarkdownResult(query: string, links: WebLink[]): string {
+  if (links.length === 0) {
+    return `# ${query}\n\n**Sorry, no lyrics found.**\n\nTry another song or double-check the title and artist.`
   }
-  return null
+  let md = `# Lyrics search: ${query}\n\n`
+  for (const link of links) {
+    md += `### [${link.name}](${link.url})\n\n`
+    md += `${link.snippet}\n\n`
+  }
+  return md.trim()
 }
 
-// Clean up lyrics text and ensure it's suitable for markdown
-function lyricsToMarkdown(title: string, lyrics: string): string {
-  // Remove excessive empty lines, trim lines
-  const cleaned = lyrics
-    .split('\n')
-    .map(l => l.trim())
-    .filter(l => l.length > 0)
-    .join('\n');
-  // Return as markdown with a heading
-  return `# ${title}\n\n${cleaned}\n`
+// Firecrawl documentation: https://docs.firecrawl.dev/reference/search
+async function searchLyricsLinks(query: string): Promise<WebLink[]> {
+  if (!FIRECRAWL_API_KEY) return []
+
+  // Firecrawl search endpoint
+  const searchUrl = "https://api.firecrawl.dev/v1/search";
+  const payload = {
+    q: query + " christian lyrics",
+    numResults: 5
+  };
+
+  const resp = await fetch(searchUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": FIRECRAWL_API_KEY
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!resp.ok) return []
+
+  const data = await resp.json();
+
+  // Firecrawl returns an array in data.results
+  if (!data.results || !Array.isArray(data.results) || data.results.length === 0) return []
+
+  // Get top 3 results with title, url, and snippet/description/content
+  return data.results.slice(0, 3).map((item: any) => ({
+    name: item.title || item.url,
+    url: item.url,
+    snippet: item.snippet || item.description || (item.content ? (item.content.length > 200 ? item.content.slice(0, 200) + "..." : item.content) : "")
+  }))
 }
 
 Deno.serve(async (req: Request) => {
-  console.log(`${req.method} ${req.url}`)
-
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -45,7 +67,7 @@ Deno.serve(async (req: Request) => {
 
   if (req.method !== 'POST') {
     return new Response(
-      '```markdown\n**Error:** Method not allowed\n```',
+      '# Error\n\nMethod not allowed',
       {
         status: 405,
         headers: { ...corsHeaders, 'Content-Type': 'text/markdown' },
@@ -58,7 +80,7 @@ Deno.serve(async (req: Request) => {
 
     if (!query || typeof query !== 'string') {
       return new Response(
-        '```markdown\n**Error:** Query parameter is required\n```',
+        '# Error\n\nQuery parameter is required.',
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'text/markdown' },
@@ -66,88 +88,25 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    console.log('Searching for Christian song:', query)
-
-    let songResults: SongResult[] = []
-    let markdownResult: string | null = null
-
-    // Parse query for artist and title
-    const artistTitle = parseQuery(query)
-    if (artistTitle) {
-      const { artist, title } = artistTitle
-      // Try lyrics.ovh API (free lyrics API)
-      console.log('Trying lyrics.ovh API...')
-      try {
-        const lyricsResponse = await fetch(
-          `https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`,
-          {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-            },
-          }
-        )
-
-        if (lyricsResponse.ok) {
-          const lyricsData: LyricsOvhResponse = await lyricsResponse.json()
-          console.log('Lyrics.ovh response:', lyricsData.lyrics ? 'found lyrics' : 'no lyrics')
-
-          if (lyricsData.lyrics && lyricsData.lyrics.length > 30) {
-            songResults.push({
-              title: `${title} - ${artist}`,
-              lyrics: lyricsData.lyrics.trim(),
-              source: 'lyrics.ovh',
-              url: 'https://lyrics.ovh'
-            })
-            markdownResult = lyricsToMarkdown(`${title} - ${artist}`, lyricsData.lyrics.trim())
-          }
-        } else {
-          console.log('Lyrics.ovh API error:', lyricsResponse.status)
-        }
-      } catch (lyricsError) {
-        console.log('Lyrics.ovh API failed:', lyricsError)
-      }
+    let links: WebLink[] = []
+    if (FIRECRAWL_API_KEY) {
+      links = await searchLyricsLinks(query)
     }
 
-    // Fallback to demo if nothing found
-    if (!markdownResult) {
-      // If the query isn't in "Title - Artist" or "Title by Artist" format, prompt the user
-      if (!artistTitle) {
-        markdownResult = `# Christian Song Lyrics Search
-
-**Error:** Please provide the song in the format \`Song Title - Artist\` or \`Song Title by Artist\`.
-
-_Example: Amazing Grace - Chris Tomlin_`
-      } else {
-        // Fallback demo output (markdown)
-        markdownResult = `# ${query}
-
-**Sorry, lyrics for this song could not be found.**
-
----
-
-> _This may be because the song is not in our database, is not a Christian song, or the artist/title format was incorrect._
-
-**Try another song or check your spelling.**
-
-_Example: How Great Thou Art - Alan Jackson_
-
----`
-      }
-    }
+    // Markdown result with clickable links and lyric snippets
+    const markdown = formatMarkdownResult(query, links)
 
     return new Response(
-      markdownResult,
+      markdown,
       {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'text/markdown' },
       }
     )
-
   } catch (error) {
     console.error('AI Song Search Error:', error)
     return new Response(
-      '```markdown\n**Error:** AI search failed. Please try again later.\n```',
+      '# Error\n\nAI search failed. Please try again later.',
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'text/markdown' },
