@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
 
 export function Dashboard() {
-  const { user } = useAuth()
+  const { user, signOut } = useAuth()
   const [songCount, setSongCount] = useState(0)
   const [loading, setLoading] = useState(true)
 
@@ -73,6 +73,23 @@ export function Dashboard() {
             <p className="text-lg text-gray-700 drop-shadow-sm">
               Hello, {user?.email}! Ready to explore? 🌟
             </p>
+          </div>
+
+          {/* Logout Button - Prominent placement */}
+          <div className="mb-8 flex justify-end">
+            <button
+              onClick={() => {
+                if (window.confirm('Are you sure you want to sign out?')) {
+                  signOut()
+                }
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              Sign Out
+            </button>
           </div>
 
           {/* Feature Cards */}
