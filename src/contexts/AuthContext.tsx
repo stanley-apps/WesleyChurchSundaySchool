@@ -11,12 +11,28 @@ interface AuthContextType {
   signOut: () => Promise<void>
 }
 
+// Add notification context for logout messages
+interface NotificationContextType {
+  showNotification: (message: string, type: 'success' | 'error' | 'info') => void
+}
+
+const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
+
+export function useNotification() {
+  const context = useContext(NotificationContext)
+  if (!context) {
+    throw new Error('useNotification must be used within a NotificationProvider')
+  }
+  return context
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
 
   useEffect(() => {
     // Get initial session
@@ -55,7 +71,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        throw error
+      }
+      // Clear any local storage or session storage if needed
+      localStorage.removeItem('supabase.auth.token')
+      sessionStorage.clear()
+      
+      // Show success notification
+      showNotification('Successfully logged out! 👋', 'success')
+    } catch (error: any) {
+      console.error('Logout error:', error)
+      showNotification('Error during logout. Please try again.', 'error')
+    }
+  }
+
+  const showNotification = (message: string, type: 'success' | 'error' | 'info') => {
+    setNotification({ message, type })
+    // Auto-hide notification after 3 seconds
+    setTimeout(() => {
+      setNotification(null)
+    }, 3000)
   }
 
   const value = {
@@ -67,7 +105,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut,
   }
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  const notificationValue = {
+    showNotification,
+  }
+
+  return (
+    <AuthContext.Provider value={value}>
+      <NotificationContext.Provider value={notificationValue}>
+        {children}
+        {/* Global Notification Component */}
+        {notification && (
+          <div className="fixed top-4 right-4 z-50 animate-pulse">
+            <div className={`px-6 py-3 rounded-lg shadow-lg border ${
+              notification.type === 'success' 
+                ? 'bg-green-50 border-green-200 text-green-800' 
+                : notification.type === 'error'
+                ? 'bg-red-50 border-red-200 text-red-800'
+                : 'bg-blue-50 border-blue-200 text-blue-800'
+            }`}>
+              <div className="flex items-center">
+                <span className="text-sm font-medium">{notification.message}</span>
+                <button
+                  onClick={() => setNotification(null)}
+                  className="ml-3 text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </NotificationContext.Provider>
+    </AuthContext.Provider>
+  )
 }
 
 export function useAuth() {

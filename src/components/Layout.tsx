@@ -1,9 +1,12 @@
 import { Link, useLocation, Outlet } from 'react-router-dom'
+import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 
 export function Layout() {
   const { user, signOut } = useAuth()
   const location = useLocation()
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: '🏠' },
@@ -13,8 +16,22 @@ export function Layout() {
     { name: 'Videos', href: '#', icon: '🎥', disabled: true },
   ]
 
-  const handleSignOut = async () => {
-    await signOut()
+  const handleSignOut = () => {
+    setShowLogoutConfirm(true)
+  }
+
+  const confirmSignOut = async () => {
+    setIsLoggingOut(true)
+    try {
+      await signOut()
+    } finally {
+      setIsLoggingOut(false)
+      setShowLogoutConfirm(false)
+    }
+  }
+
+  const cancelSignOut = () => {
+    setShowLogoutConfirm(false)
   }
 
   // Helper function to determine if a navigation item is active
@@ -38,9 +55,25 @@ export function Layout() {
           </Link>
           <button
             onClick={handleSignOut}
-            className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1"
+            disabled={isLoggingOut}
+            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-white hover:bg-red-600 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-300 hover:border-red-600"
           >
-            🔓 Sign Out
+            {isLoggingOut ? (
+              <>
+                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Signing Out...
+              </>
+            ) : (
+              <>
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Sign Out
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -100,14 +133,31 @@ export function Layout() {
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">
-                      {user?.email}
+                      👤 {user?.email}
                     </p>
+                    <p className="text-xs text-gray-500">Signed in</p>
                   </div>
                   <button
                     onClick={handleSignOut}
-                    className="ml-3 text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1"
+                    disabled={isLoggingOut}
+                    className="ml-3 inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-white hover:bg-red-600 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-300 hover:border-red-600"
                   >
-                    🔓 Sign Out
+                    {isLoggingOut ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Signing Out...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013 3v1" />
+                        </svg>
+                        Sign Out
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -162,6 +212,54 @@ export function Layout() {
           })}
         </nav>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full mx-4">
+            <div className="flex items-center mb-4">
+              <div className="flex-shrink-0">
+                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-lg font-medium text-gray-900">Confirm Sign Out</h3>
+              </div>
+            </div>
+            <div className="mb-6">
+              <p className="text-sm text-gray-600">
+                Are you sure you want to sign out? You'll need to sign in again to access your account.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={cancelSignOut}
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmSignOut}
+                disabled={isLoggingOut}
+                className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isLoggingOut ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Signing Out...
+                  </>
+                ) : (
+                  'Sign Out'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
