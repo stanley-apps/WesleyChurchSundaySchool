@@ -1,7 +1,12 @@
 import { corsHeaders } from '../_shared/cors.ts'
 
-// Set your Firecrawl API key as an environment variable FIRECRAWL_API_KEY
-const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
+// Try/catch for Deno.env.get (in case not available, e.g., Deno Deploy)
+let FIRECRAWL_API_KEY: string | undefined = undefined
+try {
+  FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY")
+} catch (_) {
+  // Not available in all environments
+}
 
 interface WebLink {
   name: string
@@ -21,36 +26,56 @@ function formatMarkdownResult(query: string, links: WebLink[]): string {
   return md.trim()
 }
 
-// Firecrawl documentation: https://docs.firecrawl.dev/reference/search
 async function searchLyricsLinks(query: string): Promise<WebLink[]> {
-  if (!FIRECRAWL_API_KEY) return []
+  if (!FIRECRAWL_API_KEY) {
+    console.error("FIRECRAWL_API_KEY missing or not set in environment.")
+    return []
+  }
 
-  // Firecrawl search endpoint
-  const searchUrl = "https://api.firecrawl.dev/v1/search";
+  const searchUrl = "https://api.firecrawl.dev/v1/search"
   const payload = {
     q: query + " christian lyrics",
     numResults: 5
-  };
+  }
 
-  const resp = await fetch(searchUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": FIRECRAWL_API_KEY
-    },
-    body: JSON.stringify(payload)
-  });
+  let resp: Response
+  try {
+    resp = await fetch(searchUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": FIRECRAWL_API_KEY
+      },
+      body: JSON.stringify(payload)
+    })
+  } catch (err) {
+    console.error("Firecrawl API request failed:", err)
+    return []
+  }
 
-  if (!resp.ok) return []
+  if (!resp.ok) {
+    let errorMsg = "Firecrawl API error: " + resp.status
+    try {
+      const errorData = await resp.json()
+      errorMsg += " " + (errorData.error || JSON.stringify(errorData))
+    } catch {}
+    console.error(errorMsg)
+    return []
+  }
 
-  const data = await resp.json();
+  let data: any
+  try {
+    data = await resp.json()
+  } catch (err) {
+    console.error("Failed to parse Firecrawl response:", err)
+    return []
+  }
 
-  // Firecrawl returns an array in data.results
   if (!data.results || !Array.isArray(data.results) || data.results.length === 0) return []
 
   // Get top 3 results with title, url, and snippet/description/content
   return data.results.slice(0, 3).map((item: any) => ({
-    name: item.title || item.url,
+    name: item.title || item.url || "Link",
     url: item.url,
     snippet: item.snippet || item.description || (item.content ? (item.content.length > 200 ? item.content.slice(0, 200) + "..." : item.content) : "")
   }))
@@ -91,6 +116,8 @@ Deno.serve(async (req: Request) => {
     let links: WebLink[] = []
     if (FIRECRAWL_API_KEY) {
       links = await searchLyricsLinks(query)
+    } else {
+      console.error("FIRECRAWL_API_KEY missing. Unable to perform search.")
     }
 
     // Markdown result with clickable links and lyric snippets
