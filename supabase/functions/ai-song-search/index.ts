@@ -1,12 +1,9 @@
 import { corsHeaders } from '../_shared/cors.ts'
 
-// Try/catch for Deno.env.get (in case not available, e.g., Deno Deploy)
 let FIRECRAWL_API_KEY: string | undefined = undefined
 try {
   FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY")
-} catch (_) {
-  // Not available in all environments
-}
+} catch (_) {}
 
 interface WebLink {
   name: string
@@ -73,7 +70,6 @@ async function searchLyricsLinks(query: string): Promise<WebLink[]> {
 
   if (!data.results || !Array.isArray(data.results) || data.results.length === 0) return []
 
-  // Get top 3 results with title, url, and snippet/description/content
   return data.results.slice(0, 3).map((item: any) => ({
     name: item.title || item.url || "Link",
     url: item.url,
@@ -92,10 +88,10 @@ Deno.serve(async (req: Request) => {
 
   if (req.method !== 'POST') {
     return new Response(
-      '# Error\n\nMethod not allowed',
+      JSON.stringify({ error: 'Method not allowed' }),
       {
         status: 405,
-        headers: { ...corsHeaders, 'Content-Type': 'text/markdown' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
   }
@@ -105,10 +101,10 @@ Deno.serve(async (req: Request) => {
 
     if (!query || typeof query !== 'string') {
       return new Response(
-        '# Error\n\nQuery parameter is required.',
+        JSON.stringify({ error: 'Query parameter is required.' }),
         {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'text/markdown' },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       )
     }
@@ -120,23 +116,25 @@ Deno.serve(async (req: Request) => {
       console.error("FIRECRAWL_API_KEY missing. Unable to perform search.")
     }
 
-    // Markdown result with clickable links and lyric snippets
     const markdown = formatMarkdownResult(query, links)
 
     return new Response(
-      markdown,
+      JSON.stringify({
+        markdown,
+        links
+      }),
       {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'text/markdown' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
   } catch (error) {
     console.error('AI Song Search Error:', error)
     return new Response(
-      '# Error\n\nAI search failed. Please try again later.',
+      JSON.stringify({ error: 'AI search failed. Please try again later.' }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'text/markdown' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
   }
