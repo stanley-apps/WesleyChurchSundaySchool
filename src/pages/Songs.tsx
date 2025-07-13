@@ -12,11 +12,6 @@ interface SongResult {
   url: string
 }
 
-interface AISearchResponse {
-  query: string
-  results: SongResult[]
-}
-
 export function Songs() {
   const { user } = useAuth()
   const [songs, setSongs] = useState<Song[]>([])
@@ -80,8 +75,6 @@ export function Songs() {
       setFilteredSongs(songs)
       return
     }
-
-    // Use Fuse.js for fuzzy search
     const results = fuse.search(query).map((result) => result.item)
     setFilteredSongs(results)
   }
@@ -91,6 +84,7 @@ export function Songs() {
     setSearchTerm(value)
   }
 
+  // --- UPDATED AI SEARCH HANDLER: Handles legacy, Firecrawl, and markdown responses ---
   const handleAIRequest = async () => {
     if (!aiQuery.trim()) {
       setAiError('Please enter a song name to search for')
@@ -104,7 +98,6 @@ export function Songs() {
 
     try {
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-song-search`
-      
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
@@ -120,16 +113,40 @@ export function Songs() {
         return
       }
 
-      const data: AISearchResponse = await response.json()
+      const data = await response.json()
 
-      if (!response.ok) {
-        throw new Error(data.error || 'AI search failed')
+      // Legacy style (results array)
+      if (Array.isArray(data.results)) {
+        setAiResults(data.results)
+        if (data.results.length === 0) {
+          setAiError('No lyrics found for this song. Try a different song name or check spelling.')
+        }
+        return
       }
 
-      setAiResults(data.results)
-      if (data.results.length === 0) {
-        setAiError('No lyrics found for this song. Try a different song name or check spelling.')
+      // Firecrawl style (links array)
+      if (data.links && Array.isArray(data.links)) {
+        const firecrawlResults = data.links.map((item: any) => ({
+          title: item.name || item.url || "Link",
+          lyrics: item.snippet || "",
+          source: item.url ? new URL(item.url).hostname.replace(/^www\./, "") : "web",
+          url: item.url || "#"
+        }))
+        setAiResults(firecrawlResults)
+        if (firecrawlResults.length === 0) {
+          setAiError('No lyrics found for this song. Try a different song name or check spelling.')
+        }
+        return
       }
+
+      // If markdown is present (Firecrawl fallback or error)
+      if (data.markdown) {
+        setAiResults([]) // Clear results
+        setAiError("AI returned:\n" + data.markdown)
+        return
+      }
+
+      setAiError('AI search failed (unexpected response format)')
     } catch (err: any) {
       if (err.name === 'TypeError' && err.message.includes('fetch')) {
         setAiAvailable(false)
@@ -141,6 +158,7 @@ export function Songs() {
       setAiLoading(false)
     }
   }
+  // --- END UPDATED AI SEARCH HANDLER ---
 
   const handleSelectSong = (song: SongResult) => {
     setSelectedSong(song)
@@ -168,10 +186,7 @@ export function Songs() {
 
       if (error) throw error
 
-      // Refresh the songs list
       await fetchSongs()
-      
-      // Clear AI search results
       setAiResults([])
       setSelectedSong(null)
       setAiQuery('')
@@ -191,15 +206,11 @@ export function Songs() {
 
   const highlightSearchTerm = (text: string, searchTerm: string) => {
     if (!searchTerm.trim()) return text
-    
     const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
     const parts = text.split(regex)
-    
     return parts.map((part, index) => 
       regex.test(part) ? (
-        <mark key={index} className="bg-yellow-200 px-1 rounded">
-          {part}
-        </mark>
+        <mark key={index} className="bg-yellow-200 px-1 rounded">{part}</mark>
       ) : part
     )
   }
@@ -304,7 +315,10 @@ export function Songs() {
               </div>
 
               {aiError && (
-                <div className="bg-red-50/90 backdrop-blur-sm border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                <div
+                  className="bg-red-50/90 backdrop-blur-sm border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm whitespace-pre-wrap"
+                  style={{ whiteSpace: 'pre-wrap' }}
+                >
                   {aiError}
                 </div>
               )}
@@ -314,7 +328,6 @@ export function Songs() {
                   <h3 className="text-lg font-semibold text-gray-900">
                     Found {aiResults.length} result{aiResults.length !== 1 ? 's' : ''} for "{aiQuery}":
                   </h3>
-                  
                   <div className="grid gap-4">
                     {aiResults.map((song, index) => (
                       <div
@@ -328,7 +341,17 @@ export function Songs() {
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">
-                            <h4 className="font-semibold text-gray-900 mb-1">{song.title}</h4>
+                            <h4 className="font-semibold text-gray-900 mb-1">
+                              <a
+                                href={song.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-700 hover:underline"
+                                onClick={e => e.stopPropagation()}
+                              >
+                                {song.title}
+                              </a>
+                            </h4>
                             <p className="text-xs text-gray-600">Source: {song.source}</p>
                           </div>
                           <div className="flex items-center">
@@ -347,7 +370,6 @@ export function Songs() {
                             </button>
                           </div>
                         </div>
-                        
                         <div className="bg-gray-50/80 backdrop-blur-sm rounded p-3 max-h-32 overflow-y-auto">
                           <pre className="whitespace-pre-wrap text-xs font-serif text-gray-700 leading-relaxed">
                             {truncateText(song.lyrics, 300)}
@@ -356,7 +378,6 @@ export function Songs() {
                       </div>
                     ))}
                   </div>
-
                   {selectedSong && (
                     <div className="flex gap-3 pt-4 border-t border-gray-200">
                       <button
