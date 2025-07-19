@@ -95,7 +95,7 @@ export function Login() {
               disabled={loading}
               className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? (showSignup ? 'Creating...' : 'Signing in...') : (showSignup ? 'Create Demo User' : 'Sign In')}
+              {loading ? (showSignup ? 'Creating...' : 'Signing in...') : (showSignup ? 'Create User' : 'Sign In')}
             </button>
           </div>
 
