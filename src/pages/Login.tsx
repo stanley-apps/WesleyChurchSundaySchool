@@ -105,7 +105,7 @@ export function Login() {
               onClick={() => setShowSignup(!showSignup)}
               className="text-sm text-blue-600 hover:text-blue-800"
             >
-              {showSignup ? 'Already have an account? Sign in' : 'Need to create demo user? Click here'}
+              {showSignup ? 'Already have an account? Sign in' : 'Need to create new user? Click here'}
             </button>
           </div>
           
