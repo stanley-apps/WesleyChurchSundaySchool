@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 export function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [displayName, setDisplayName] = useState('') // NEW: displayName state
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [showSignup, setShowSignup] = useState(false)
@@ -19,10 +20,14 @@ export function Login() {
     setError('')
     setLoading(true)
 
-    const { error } = showSignup 
-      ? await signUp(email, password)
-      : await signIn(email, password)
-    
+    let res
+    if (showSignup) {
+      res = await signUp(email, password, displayName) // Pass displayName
+    } else {
+      res = await signIn(email, password)
+    }
+    const { error } = res
+
     if (error) {
       setError(error.message)
     } else if (showSignup) {
@@ -31,6 +36,7 @@ export function Login() {
       setShowSignup(false)
       setEmail('')
       setPassword('')
+      setDisplayName('')
     }
     
     setLoading(false)
@@ -50,6 +56,23 @@ export function Login() {
         
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
+            {showSignup && (
+              <div>
+                <label htmlFor="displayName" className="block text-sm font-medium text-gray-700">
+                  Name
+                </label>
+                <input
+                  id="displayName"
+                  name="displayName"
+                  type="text"
+                  required
+                  className="input-field mt-1"
+                  placeholder="Your name"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                />
+              </div>
+            )}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email Address
