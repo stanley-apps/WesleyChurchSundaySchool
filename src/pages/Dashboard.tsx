@@ -33,14 +33,14 @@ export function Dashboard() {
     }
   }
 
-  // Fetch displayName from profiles table
+  // Fetch displayName from profiles table using user_id
   const fetchDisplayName = async () => {
     if (!user?.id) return
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('display_name')
-        .eq('id', user.id)
+        .eq('user_id', user.id)
         .single()
       if (error) throw error
       if (data?.display_name) {
