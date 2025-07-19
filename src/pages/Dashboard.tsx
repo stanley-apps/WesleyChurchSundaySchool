@@ -8,10 +8,13 @@ export function Dashboard() {
   const { user, signOut } = useAuth()
   const [songCount, setSongCount] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [displayName, setDisplayName] = useState('')
 
   useEffect(() => {
     fetchSongCount()
-  }, [])
+    fetchDisplayName()
+    // eslint-disable-next-line
+  }, [user])
 
   const fetchSongCount = async () => {
     try {
@@ -20,13 +23,31 @@ export function Dashboard() {
         .select('*', { count: 'exact', head: true })
 
       if (error) throw error
-      
+
       setSongCount(count || 0)
     } catch (err) {
       console.error('Error fetching song count:', err)
       setSongCount(0)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Fetch displayName from profiles table
+  const fetchDisplayName = async () => {
+    if (!user?.id) return
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('id', user.id)
+        .single()
+      if (error) throw error
+      if (data?.display_name) {
+        setDisplayName(data.display_name)
+      }
+    } catch (err) {
+      console.error('Error fetching display name:', err)
     }
   }
 
@@ -71,7 +92,7 @@ export function Dashboard() {
               Welcome to Wesley Church Sunday School Hub
             </h1>
             <p className="text-lg text-gray-700 drop-shadow-sm">
-              Hello, {user?.email}! Ready to explore? 🌟
+              Hello, {displayName || user?.email}! Ready to explore? 🌟
             </p>
           </div>
 
@@ -93,69 +114,28 @@ export function Dashboard() {
           </div>
 
           {/* Feature Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mb-12">
-            {features.map((feature) => {
-              if (feature.available) {
-                return (
-                  <Link
-                    key={feature.title}
-                    to={feature.href}
-                    className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 border border-white/50 hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer hover:bg-white/95"
-                  >
-                    <div className="flex items-center">
-                      <div className="text-4xl mr-4 drop-shadow-sm">{feature.icon}</div>
-                      <div>
-                        <h3 className="text-xl font-semibold text-gray-900 mb-1">{feature.title}</h3>
-                        <p className="text-gray-700">{feature.description}</p>
-                      </div>
-                    </div>
-                  </Link>
-                )
-              }
-
-              return (
-                <div
-                  key={feature.title}
-                  className="bg-white/60 backdrop-blur-sm rounded-xl shadow-md p-6 border border-white/30 opacity-70 cursor-not-allowed"
-                >
-                  <div className="flex items-center">
-                    <div className="text-4xl mr-4 grayscale">{feature.icon}</div>
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-900 mb-1">{feature.title}</h3>
-                      <p className="text-gray-600 mb-2">{feature.description}</p>
-                      <span className="inline-block text-xs bg-gray-100 px-2 py-1 rounded-full">
-                        Coming Soon
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Quick Stats */}
-          <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 border border-white/50">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-6 drop-shadow-sm">Quick Stats 📊</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-blue-600 mb-1 drop-shadow-sm">
-                  {loading ? '...' : songCount}
-                </div>
-                <div className="text-sm text-gray-700">Songs</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-green-600 mb-1 drop-shadow-sm">0</div>
-                <div className="text-sm text-gray-700">Lessons</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-purple-600 mb-1 drop-shadow-sm">0</div>
-                <div className="text-sm text-gray-700">Games</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-orange-600 mb-1 drop-shadow-sm">0</div>
-                <div className="text-sm text-gray-700">Videos</div>
-              </div>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            {features.map((feature, idx) => (
+              <Link
+                to={feature.available ? feature.href : "#"}
+                key={idx}
+                className={`block rounded-lg shadow-md p-6 bg-white hover:bg-blue-50 transition-colors duration-200 border-2 ${feature.available ? "border-blue-300" : "border-gray-200 opacity-50 pointer-events-none"}`}
+                tabIndex={feature.available ? 0 : -1}
+                aria-disabled={!feature.available}
+              >
+                <div className="text-4xl mb-2">{feature.icon}</div>
+                <h2 className="text-xl font-semibold mb-1">{feature.title}</h2>
+                <p className="text-gray-600">{feature.description}</p>
+                {!feature.available && (
+                  <span className="inline-block mt-2 px-2 py-1 text-xs bg-gray-300 text-gray-700 rounded">Coming Soon</span>
+                )}
+                {feature.title === 'Songs' && (
+                  <span className="block mt-4 text-blue-700 font-bold">
+                    {loading ? 'Loading…' : `${songCount} songs`}
+                  </span>
+                )}
+              </Link>
+            ))}
           </div>
         </div>
       </div>
