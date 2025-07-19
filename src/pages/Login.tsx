@@ -132,13 +132,13 @@ export function Login() {
             </button>
           </div>
           
-          <div className="text-center">
+          {/*          <div className="text-center"> 
             <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-md">
               <p className="font-medium">Demo Credentials:</p>
               <p>Email: demo@example.com</p>
-              <p>Password: password123</p>
+              <p>Password: password123</p> 
             </div>
-          </div>
+          </div> */}
         </form>
       </div>
     </div>
