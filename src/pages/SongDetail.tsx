@@ -208,7 +208,85 @@ export function SongDetail() {
                 })}
               </div>
             </div>
-            {/* Lyrics Section remains unchanged */}
+
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 drop-shadow-sm">Lyrics</h2>
+                {canEdit && !isEditing && (
+                  <button
+                    onClick={handleEditClick}
+                    className="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors duration-200"
+                    title="Edit lyrics"
+                  >
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    <span className="ml-1 text-sm">📝</span>
+                  </button>
+                )}
+              </div>
+
+              {isEditing ? (
+                <div className="space-y-4">
+                  <textarea
+                    value={editedLyrics}
+                    onChange={(e) => setEditedLyrics(e.target.value)}
+                    rows={12}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm resize-vertical font-serif text-lg"
+                    placeholder="Enter the song lyrics... You can use Markdown formatting!"
+                  />
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleSave}
+                      disabled={saving}
+                      className="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 disabled:cursor-not-allowed"
+                    >
+                      {saving ? 'Saving...' : '✅ Save Changes'}
+                    </button>
+                    <button
+                      onClick={handleCancel}
+                      disabled={saving}
+                      className="bg-gray-500 hover:bg-gray-600 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 disabled:cursor-not-allowed"
+                    >
+                      ❌ Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white/90 backdrop-blur-sm p-8 rounded-lg border border-gray-200/50 shadow-sm">
+                  <div className="prose prose-lg max-w-none text-center">
+                    <ReactMarkdown className="font-serif text-xl leading-loose whitespace-pre-line">
+                      {song.lyrics}
+                    </ReactMarkdown>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {!isEditing && (
+              <div className="px-6 py-6 border-t border-gray-200/50">
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <button 
+                    onClick={copyLyrics}
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+                  >
+                    📋 Copy Lyrics
+                  </button>
+                  <button 
+                    onClick={shareSong}
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+                  >
+                    📤 Share Song
+                  </button>
+                  <Link
+                    to="/dashboard/songs/upload"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 text-center flex items-center justify-center gap-2"
+                  >
+                    ➕ Add Another Song
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
