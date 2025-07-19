@@ -44,7 +44,7 @@ export function Login() {
            Wesley Church Sunday School Hub
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            {showSignup ? 'Create demo user account' : 'Sign in to access your dashboard'}
+            {showSignup ? 'Create user account' : 'Sign in to access your dashboard'}
           </p>
         </div>
         
