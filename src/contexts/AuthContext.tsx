@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error }
   }
 
-  // UPDATED: Accept displayName and insert into profiles after signUp
+  // TRIGGER+UPDATE: Do not insert, only update the display_name after signup
   const signUp = async (email: string, password: string, displayName: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -72,15 +72,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error }
     }
 
-    // Insert into profiles table with user_id and display_name
+    // Update the display_name for the new user's profile (created by trigger)
     const { error: profileError } = await supabase
       .from('profiles')
-      .insert([
-        {
-          user_id: data.user.id,
-          display_name: displayName,
-        },
-      ])
+      .update({ display_name: displayName })
+      .eq('user_id', data.user.id)
 
     // Prefer to return the profile error if user was created
     return { error: profileError || error }
