@@ -27,7 +27,7 @@ export function Login() {
       setError(error.message)
     } else if (showSignup) {
       setError('')
-      alert('Demo user created successfully! You can now sign in.')
+      alert('User created successfully! You can now sign in.')
       setShowSignup(false)
       setEmail('')
       setPassword('')
