@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import { supabase, Song } from '../lib/supabase'
@@ -17,11 +17,32 @@ export function SongDetail() {
   const [saving, setSaving] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
 
+  const lyricsDisplayRef = useRef<HTMLDivElement>(null) // Ref for the lyrics container
+
   useEffect(() => {
     if (id) {
       fetchSong(id)
     }
   }, [id])
+
+  // Listen for fullscreen changes (e.g., if user presses ESC)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement)
+    }
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange) // For Safari
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange)   // For Firefox
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange)   // For IE/Edge
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange)
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange)
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange)
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange)
+    }
+  }, [])
 
   const fetchSong = async (songId: string) => {
     try {
@@ -114,7 +135,16 @@ export function SongDetail() {
   }
 
   const toggleFullscreen = () => {
-    setIsFullscreen(!isFullscreen)
+    if (lyricsDisplayRef.current) {
+      if (!document.fullscreenElement) {
+        lyricsDisplayRef.current.requestFullscreen().catch(err => {
+          console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+          alert('Failed to enter fullscreen. Your browser might block it or it requires a user gesture.');
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    }
   }
 
   if (loading) {
@@ -157,59 +187,66 @@ export function SongDetail() {
     <ChildFriendlyBackground>
       <div className="px-4 sm:px-8 py-6 pb-20 lg:pb-6">
         <div className="max-w-3xl mx-auto">
-          <div className="mb-6 flex items-center justify-between">
-            <Link
-              to="/dashboard/songs"
-              className="inline-flex items-center text-blue-600 hover:text-blue-800 drop-shadow-sm"
-            >
-              <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Back to Songs
-            </Link>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={toggleFullscreen}
-                className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-sm"
-              >
-                🎬 Fullscreen View
-              </button>
+          {/* Controls and navigation outside the fullscreen element */}
+          {!isFullscreen && (
+            <div className="mb-6 flex items-center justify-between">
               <Link
-                to="/dashboard"
-                className="inline-flex items-center text-blue-600 hover:text-blue-800 drop-shadow-sm font-medium"
+                to="/dashboard/songs"
+                className="inline-flex items-center text-blue-600 hover:text-blue-800 drop-shadow-sm"
               >
-                🏠 Dashboard
+                <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Back to Songs
               </Link>
-            </div>
-          </div>
-
-          <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-white/50">
-            <div className="px-6 py-6 border-b border-gray-200/50">
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={editedTitle}
-                  onChange={(e) => setEditedTitle(e.target.value)}
-                  className="w-full text-3xl font-bold text-gray-900 mb-2 text-center border-b border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/90 backdrop-blur-sm rounded-lg px-2 py-1"
-                />
-              ) : (
-                <h1 className="text-3xl font-bold text-gray-900 mb-2 text-center drop-shadow-sm">
-                  {song.title}
-                </h1>
-              )}
-              <div className="text-sm text-gray-600 text-center">
-                Added on {new Date(song.created_at).toLocaleDateString('en-US', {
-                  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-                })} at {new Date(song.created_at).toLocaleTimeString('en-US', {
-                  hour: 'numeric', minute: '2-digit', hour12: true
-                })}
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={toggleFullscreen}
+                  className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-sm"
+                >
+                  {isFullscreen ? 'Exit Fullscreen' : '🎬 Fullscreen View'}
+                </button>
+                <Link
+                  to="/dashboard"
+                  className="inline-flex items-center text-blue-600 hover:text-blue-800 drop-shadow-sm font-medium"
+                >
+                  🏠 Dashboard
+                </Link>
               </div>
             </div>
+          )}
+
+          <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-white/50">
+            {/* Title and date section - hidden when fullscreen */}
+            {!isFullscreen && (
+              <div className="px-6 py-6 border-b border-gray-200/50">
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editedTitle}
+                    onChange={(e) => setEditedTitle(e.target.value)}
+                    className="w-full text-3xl font-bold text-gray-900 mb-2 text-center border-b border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/90 backdrop-blur-sm rounded-lg px-2 py-1"
+                  />
+                ) : (
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2 text-center drop-shadow-sm">
+                    {song.title}
+                  </h1>
+                )}
+                <div className="text-sm text-gray-600 text-center">
+                  Added on {new Date(song.created_at).toLocaleDateString('en-US', {
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                  })} at {new Date(song.created_at).toLocaleTimeString('en-US', {
+                    hour: 'numeric', minute: '2-digit', hour12: true
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-gray-900 drop-shadow-sm">Lyrics</h2>
-                {canEdit && !isEditing && (
+              {/* Lyrics section header and edit button - hidden when fullscreen */}
+              {!isFullscreen && canEdit && !isEditing && (
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900 drop-shadow-sm">Lyrics</h2>
                   <button
                     onClick={handleEditClick}
                     className="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors duration-200"
@@ -220,8 +257,8 @@ export function SongDetail() {
                     </svg>
                     <span className="ml-1 text-sm">📝</span>
                   </button>
-                )}
-              </div>
+                </div>
+              )}
 
               {isEditing ? (
                 <div className="space-y-4">
@@ -250,7 +287,7 @@ export function SongDetail() {
                   </div>
                 </div>
               ) : (
-                <div className="bg-white/90 backdrop-blur-sm p-8 rounded-lg border border-gray-200/50 shadow-sm">
+                <div ref={lyricsDisplayRef} className={`bg-white/90 backdrop-blur-sm p-8 rounded-lg border border-gray-200/50 shadow-sm ${isFullscreen ? 'fullscreen-active' : ''}`}>
                   <div className="prose prose-lg max-w-none text-center">
                     <ReactMarkdown className="font-serif text-xl leading-loose whitespace-pre-line">
                       {song.lyrics}
@@ -260,7 +297,8 @@ export function SongDetail() {
               )}
             </div>
 
-            {!isEditing && (
+            {/* Action buttons - hidden when editing or fullscreen */}
+            {!isEditing && !isFullscreen && (
               <div className="px-6 py-6 border-t border-gray-200/50">
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <button 
