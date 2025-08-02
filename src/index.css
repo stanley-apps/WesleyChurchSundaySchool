@@ -99,4 +99,38 @@
   .animate-gentle-bounce {
     animation: gentle-bounce 3s ease-in-out infinite;
   }
+
+  /* Fullscreen lyrics view styles */
+  .fullscreen-active {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 9999 !important; /* Ensure it's on top */
+    background-color: #1a202c !important; /* Dark background for contrast */
+    color: #f7fafc !important; /* Light text color */
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important; /* Keep for horizontal centering of prose block */
+    /* Removed justify-content: center to allow content to start from top */
+    padding: 4rem !important; /* Increased padding for better spacing */
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow-y: auto !important; /* Allow scrolling if lyrics are long */
+  }
+
+  .fullscreen-active .prose {
+    max-width: 800px !important; /* Limit width for readability */
+    margin: auto !important; /* Center the content */
+    color: inherit !important; /* Inherit text color from parent */
+  }
+
+  .fullscreen-active .prose p,
+  .fullscreen-active .prose h1,
+  .fullscreen-active .prose h2,
+  .fullscreen-active .prose h3,
+  .fullscreen-active .prose blockquote {
+    color: inherit !important; /* Ensure all text elements inherit color */
+  }
 }
