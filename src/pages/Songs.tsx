@@ -5,13 +5,6 @@ import { supabase, Song } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
 
-interface SongResult {
-  title: string
-  lyrics: string
-  source: string
-  url: string
-}
-
 export function Songs() {
   const { user } = useAuth()
   const [songs, setSongs] = useState<Song[]>([])
@@ -19,15 +12,6 @@ export function Songs() {
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-
-  // AI Search states
-  const [aiQuery, setAiQuery] = useState('')
-  const [aiResults, setAiResults] = useState<SongResult[]>([])
-  const [aiLoading, setAiLoading] = useState(false)
-  const [aiSaving, setAiSaving] = useState(false)
-  const [aiError, setAiError] = useState('')
-  const [selectedSong, setSelectedSong] = useState<SongResult | null>(null)
-  const [aiAvailable, setAiAvailable] = useState(true)
 
   // Initialize Fuse.js with fuzzy search options
   const fuse = useMemo(() => {
@@ -82,121 +66,6 @@ export function Songs() {
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setSearchTerm(value)
-  }
-
-  // --- UPDATED AI SEARCH HANDLER: Handles legacy, Firecrawl, and markdown responses ---
-  const handleAIRequest = async () => {
-    if (!aiQuery.trim()) {
-      setAiError('Please enter a song name to search for')
-      return
-    }
-
-    setAiLoading(true)
-    setAiError('')
-    setAiResults([])
-    setSelectedSong(null)
-
-    try {
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-song-search`
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query: aiQuery.trim() }),
-      })
-
-      if (response.status === 404) {
-        setAiAvailable(false)
-        setAiError('AI search is currently unavailable. The service is being deployed. Please try again in a few minutes or use manual upload.')
-        return
-      }
-
-      const data = await response.json()
-
-      // Legacy style (results array)
-      if (Array.isArray(data.results)) {
-        setAiResults(data.results)
-        if (data.results.length === 0) {
-          setAiError('No lyrics found for this song. Try a different song name or check spelling.')
-        }
-        return
-      }
-
-      // Firecrawl style (links array)
-      if (data.links && Array.isArray(data.links)) {
-        const firecrawlResults = data.links.map((item: any) => ({
-          title: item.name || item.url || "Link",
-          lyrics: item.snippet || "",
-          source: item.url ? new URL(item.url).hostname.replace(/^www\./, "") : "web",
-          url: item.url || "#"
-        }))
-        setAiResults(firecrawlResults)
-        if (firecrawlResults.length === 0) {
-          setAiError('No lyrics found for this song. Try a different song name or check spelling.')
-        }
-        return
-      }
-
-      // If markdown is present (Firecrawl fallback or error)
-      if (data.markdown) {
-        setAiResults([]) // Clear results
-        setAiError("AI returned:\n" + data.markdown)
-        return
-      }
-
-      setAiError('AI search failed (unexpected response format)')
-    } catch (err: any) {
-      if (err.name === 'TypeError' && err.message.includes('fetch')) {
-        setAiAvailable(false)
-        setAiError('AI search service is currently unavailable. Please try again later or use manual upload.')
-      } else {
-        setAiError(err.message || 'Failed to search for song lyrics')
-      }
-    } finally {
-      setAiLoading(false)
-    }
-  }
-  // --- END UPDATED AI SEARCH HANDLER ---
-
-  const handleSelectSong = (song: SongResult) => {
-    setSelectedSong(song)
-  }
-
-  const handleSaveSong = async () => {
-    if (!selectedSong || !user) {
-      setAiError('Unable to save song. Please try again.')
-      return
-    }
-
-    setAiSaving(true)
-    setAiError('')
-
-    try {
-      const { error } = await supabase
-        .from('songs')
-        .insert([
-          {
-            title: selectedSong.title,
-            lyrics: selectedSong.lyrics,
-            user_id: user.id
-          }
-        ])
-
-      if (error) throw error
-
-      await fetchSongs()
-      setAiResults([])
-      setSelectedSong(null)
-      setAiQuery('')
-      
-      alert('🎵 Song added to your library successfully!')
-    } catch (err: any) {
-      setAiError(err.message || 'Failed to save song to library')
-    } finally {
-      setAiSaving(false)
-    }
   }
 
   const truncateText = (text: string, maxLength: number = 150) => {
@@ -270,151 +139,6 @@ export function Songs() {
             </Link>
           </div>
 
-          {/* AI Song Finder Section */}
-          <div className="bg-white/90 backdrop-blur-sm shadow-lg p-6 rounded-xl border border-white/50 mb-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-4 drop-shadow-sm">🎤 Can't find a song? Ask AI</h2>
-            <p className="text-gray-700 mb-4 text-sm">
-              Use AI to search for Christian song lyrics from across the web. We'll find multiple versions for you to choose from!
-            </p>
-            
-            {!aiAvailable && (
-              <div className="bg-yellow-200 border border-yellow-300 text-yellow-800 px-4 py-3 rounded-lg mb-4 text-sm">
-                ⚠️ <strong>AI Search Temporarily Unavailable:</strong> The AI search service is currently being deployed. 
-                Please try again in a few minutes or use the manual upload option below.
-              </div>
-            )}
-            
-            <div className="space-y-4">
-              <div className="flex gap-3">
-                <input
-                  type="text"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
-                  placeholder="e.g., Way Maker, Amazing Grace, How Great Thou Art..."
-                  value={aiQuery}
-                  onChange={(e) => setAiQuery(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && !aiLoading && aiAvailable && handleAIRequest()}
-                  disabled={!aiAvailable}
-                />
-                <button
-                  onClick={handleAIRequest}
-                  disabled={aiLoading || !aiQuery.trim() || !aiAvailable}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium px-6 py-2 rounded-lg transition-colors duration-200 disabled:cursor-not-allowed whitespace-nowrap"
-                >
-                  {aiLoading ? (
-                    <span className="flex items-center">
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Searching...
-                    </span>
-                  ) : (
-                    '🔍 Ask AI'
-                  )}
-                </button>
-              </div>
-
-              {aiError && (
-                <div
-                  className="bg-red-50/90 backdrop-blur-sm border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm whitespace-pre-wrap"
-                  style={{ whiteSpace: 'pre-wrap' }}
-                >
-                  {aiError}
-                </div>
-              )}
-
-              {aiResults.length > 0 && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Found {aiResults.length} result{aiResults.length !== 1 ? 's' : ''} for "{aiQuery}":
-                  </h3>
-                  <div className="grid gap-4">
-                    {aiResults.map((song, index) => (
-                      <div
-                        key={index}
-                        className={`border rounded-lg p-4 cursor-pointer transition-all duration-200 ${
-                          selectedSong === song
-                            ? 'border-blue-500 bg-blue-50/90 backdrop-blur-sm'
-                            : 'border-gray-300 bg-white/80 backdrop-blur-sm hover:border-gray-400 hover:bg-white/90'
-                        }`}
-                        onClick={() => handleSelectSong(song)}
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-gray-900 mb-1">
-                              <a
-                                href={song.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-700 hover:underline"
-                                onClick={e => e.stopPropagation()}
-                              >
-                                {song.title}
-                              </a>
-                            </h4>
-                            <p className="text-xs text-gray-600">Source: {song.source}</p>
-                          </div>
-                          <div className="flex items-center">
-                            {selectedSong === song && (
-                              <span className="text-blue-600 text-sm font-medium mr-2">✓ Selected</span>
-                            )}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                window.open(song.url, '_blank')
-                              }}
-                              className="text-blue-600 hover:text-blue-800 text-sm"
-                              title="View original source"
-                            >
-                              🔗 Source
-                            </button>
-                          </div>
-                        </div>
-                        <div className="bg-gray-50/80 backdrop-blur-sm rounded p-3 max-h-32 overflow-y-auto">
-                          <pre className="whitespace-pre-wrap text-xs font-serif text-gray-700 leading-relaxed">
-                            {truncateText(song.lyrics, 300)}
-                          </pre>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  {selectedSong && (
-                    <div className="flex gap-3 pt-4 border-t border-gray-200">
-                      <button
-                        onClick={handleSaveSong}
-                        disabled={aiSaving}
-                        className="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium px-6 py-2 rounded-lg transition-colors duration-200 disabled:cursor-not-allowed"
-                      >
-                        {aiSaving ? (
-                          <span className="flex items-center">
-                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Saving...
-                          </span>
-                        ) : (
-                          '💾 Save Selected Song to Library'
-                        )}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setAiResults([])
-                          setSelectedSong(null)
-                          setAiQuery('')
-                          setAiError('')
-                        }}
-                        className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium px-4 py-2 rounded-lg transition-colors duration-200"
-                      >
-                        🔄 Search Again
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
           {/* Regular Search */}
           <div className="mb-6">
             <div className="relative">
@@ -460,10 +184,10 @@ export function Songs() {
                       <>
                         No matches for "<strong>{searchTerm}</strong>". 
                         <br />
-                        Try different keywords, check for typos, or use the AI search above!
+                        Try different keywords or check for typos.
                       </>
                     )
-                  : 'Start building your song collection by uploading your first song or using AI search!'
+                  : 'Start building your song collection by uploading your first song!'
                 }
               </p>
               {!searchTerm && (
@@ -474,17 +198,6 @@ export function Songs() {
                   >
                     ➕ Upload First Song
                   </Link>
-                  {aiAvailable && (
-                    <button
-                      onClick={() => {
-                        setAiQuery('Amazing Grace')
-                        handleAIRequest()
-                      }}
-                      className="inline-block bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
-                    >
-                      🤖 Try AI Search
-                    </button>
-                  )}
                 </div>
               )}
               {searchTerm && (
