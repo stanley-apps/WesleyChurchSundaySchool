@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom'
 import Fuse from 'fuse.js'
 import { supabase, Song } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground' // Added this import
 
 export function Songs() {
-  const { /* user */ } = useAuth() // Removed 'user' as it's not used
+  const { /* user */ } = useAuth()
   const [songs, setSongs] = useState<Song[]>([])
   const [filteredSongs, setFilteredSongs] = useState<Song[]>([])
   const [searchTerm, setSearchTerm] = useState('')
