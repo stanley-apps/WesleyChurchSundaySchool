@@ -7,8 +7,9 @@ import { Dashboard } from './pages/Dashboard'
 import { Songs } from './pages/Songs'
 import { SongDetail } from './pages/SongDetail'
 import { SongUpload } from './pages/SongUpload'
-import { LessonsList } from './pages/LessonsList' // New import
-import { LessonUpload } from './pages/LessonUpload' // New import
+import { LessonsList } from './pages/LessonsList'
+import { LessonUpload } from './pages/LessonUpload'
+import { LessonEdit } from './pages/LessonEdit' // New import
 
 function App() {
   return (
@@ -28,8 +29,9 @@ function App() {
             <Route path="songs" element={<Songs />} />
             <Route path="songs/upload" element={<SongUpload />} />
             <Route path="songs/:id" element={<SongDetail />} />
-            <Route path="lessons" element={<LessonsList />} /> {/* New route */}
-            <Route path="lessons/upload" element={<LessonUpload />} /> {/* New route */}
+            <Route path="lessons" element={<LessonsList />} />
+            <Route path="lessons/upload" element={<LessonUpload />} />
+            <Route path="lessons/:id/edit" element={<LessonEdit />} /> {/* New route */}
           </Route>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>

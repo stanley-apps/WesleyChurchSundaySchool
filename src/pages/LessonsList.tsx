@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase, Lesson } from '../lib/supabase'
 import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
-import { useNotification } from '../contexts/AuthContext' // For notifications
+import { useNotification, useAuth } from '../contexts/AuthContext' // For notifications and user check
 
 export function LessonsList() {
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const { showNotification } = useNotification()
+  const { user } = useAuth() // Get current user to check for edit/delete permissions
 
   useEffect(() => {
     fetchLessons()
@@ -27,6 +28,63 @@ export function LessonsList() {
     } catch (err: any) {
       setError(err.message)
       showNotification('Error loading lessons: ' + err.message, 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDeleteLesson = async (lessonId: string, fileUrl: string) => {
+    if (!user) {
+      showNotification('You must be logged in to delete lessons.', 'error')
+      return
+    }
+
+    if (!window.confirm('Are you sure you want to delete this lesson? This action cannot be undone.')) {
+      return
+    }
+
+    setLoading(true)
+    try {
+      // Extract file path from the public URL
+      // The file path is typically everything after the bucket name in the URL
+      const bucketName = 'lesson_pdfs'
+      const urlParts = fileUrl.split(`/${bucketName}/`)
+      const filePath = urlParts.length > 1 ? urlParts[1] : null
+
+      if (!filePath) {
+        throw new Error('Could not determine file path from URL.')
+      }
+
+      // 1. Delete file from Supabase Storage
+      const { error: storageError } = await supabase.storage
+        .from(bucketName)
+        .remove([filePath])
+
+      if (storageError) {
+        // If file not found in storage, proceed to delete database record
+        // This handles cases where the file might have been manually deleted or never uploaded correctly
+        if (storageError.message.includes('The resource was not found')) {
+          console.warn(`File not found in storage for lesson ${lessonId}, proceeding with database deletion.`)
+        } else {
+          throw storageError
+        }
+      }
+
+      // 2. Delete lesson record from the 'lessons' table
+      const { error: dbError } = await supabase
+        .from('lessons')
+        .delete()
+        .eq('id', lessonId)
+        .eq('user_id', user.id) // Ensure only the owner can delete
+
+      if (dbError) throw dbError
+
+      // Update local state
+      setLessons(prevLessons => prevLessons.filter(lesson => lesson.id !== lessonId))
+      showNotification('Lesson deleted successfully! 🗑️', 'success')
+    } catch (err: any) {
+      console.error('Delete error:', err)
+      showNotification('Error deleting lesson: ' + err.message, 'error')
     } finally {
       setLoading(false)
     }
@@ -138,6 +196,22 @@ export function LessonsList() {
                       >
                         ⬇️ View PDF
                       </a>
+                      {user && user.id === lesson.user_id && ( // Only show edit/delete if current user is the owner
+                        <>
+                          <Link
+                            to={`/dashboard/lessons/${lesson.id}/edit`}
+                            className="bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-center whitespace-nowrap flex items-center justify-center gap-1"
+                          >
+                            ✏️ Edit
+                          </Link>
+                          <button
+                            onClick={() => handleDeleteLesson(lesson.id, lesson.file_url)}
+                            className="bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-center whitespace-nowrap flex items-center justify-center gap-1"
+                          >
+                            🗑️ Delete
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
