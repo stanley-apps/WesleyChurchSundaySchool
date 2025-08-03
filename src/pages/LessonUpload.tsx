@@ -16,7 +16,7 @@ export function LessonUpload() {
   const { user } = useAuth()
   const { showNotification } = useNotification()
 
-  const classLevels = ['Preschool', 'Elementary', 'Youth', 'Adult', 'Other']
+  const classLevels = ['Beginners', 'Primary', 'Juniors', 'Inters', 'Seniors']
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
