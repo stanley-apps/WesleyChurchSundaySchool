@@ -6,7 +6,6 @@ import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
 
 export function LessonEdit() {
   const { id } = useParams<{ id: string }>()
-  const [lesson, setLesson] = useState<Lesson | null>(null) // Added this state to use the Lesson type
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [classLevel, setClassLevel] = useState('')
@@ -51,7 +50,6 @@ export function LessonEdit() {
         return
       }
 
-      setLesson(data) // Set the fetched lesson data
       setTitle(data.title)
       setDescription(data.description || '')
       setClassLevel(data.class_level || '')
