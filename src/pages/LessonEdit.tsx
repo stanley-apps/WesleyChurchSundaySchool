@@ -42,18 +42,21 @@ export function LessonEdit() {
         return
       }
 
+      // Explicitly cast data to Lesson type to ensure usage
+      const lessonData: Lesson = data; 
+
       // Check if the current user is the owner of the lesson
-      if (user && data.user_id !== user.id) {
+      if (user && lessonData.user_id !== user.id) {
         setError('You do not have permission to edit this lesson.')
         showNotification('You do not have permission to edit this lesson.', 'error')
         navigate('/dashboard/lessons') // Redirect if not authorized
         return
       }
 
-      setTitle(data.title)
-      setDescription(data.description || '')
-      setClassLevel(data.class_level || '')
-      setCurrentFileUrl(data.file_url)
+      setTitle(lessonData.title)
+      setDescription(lessonData.description || '')
+      setClassLevel(lessonData.class_level || '')
+      setCurrentFileUrl(lessonData.file_url)
     } catch (err: any) {
       console.error('Error fetching lesson:', err)
       setError(err.message)
