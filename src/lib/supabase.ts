@@ -26,3 +26,11 @@ export type Lesson = {
   user_id: string
   created_at: string
 }
+
+export type MemoryVerse = {
+  id: string
+  user_id: string
+  verse_text: string
+  reference: string
+  created_at: string
+}
