@@ -1,15 +1,17 @@
 import React, { useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth, useNotification } from '../contexts/AuthContext' // Import useNotification
 
 export function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [displayName, setDisplayName] = useState('') // NEW: displayName state
+  const [displayName, setDisplayName] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [showSignup, setShowSignup] = useState(false)
-  const { user, signIn, signUp } = useAuth()
+  const [showForgotPassword, setShowForgotPassword] = useState(false) // New state for forgot password form
+  const { user, signIn, signUp, resetPassword } = useAuth() // Destructure resetPassword
+  const { showNotification } = useNotification() // Use notification context
 
   if (user) {
     return <Navigate to="/dashboard" replace />
@@ -20,27 +22,47 @@ export function Login() {
     setError('')
     setLoading(true)
 
-    let res
-    if (showSignup) {
-      res = await signUp(email, password, displayName) // Pass displayName
-    } else {
-      res = await signIn(email, password)
-    }
-    const { error } = res
-
-    if (error) {
-      setError(error.message)
+    if (showForgotPassword) {
+      const { error } = await resetPassword(email);
+      if (error) {
+        setError(error.message);
+        showNotification('Error sending reset link: ' + error.message, 'error');
+      } else {
+        showNotification('Password reset link sent to your email!', 'success');
+        setShowForgotPassword(false); // Hide form on success
+        setEmail(''); // Clear email
+      }
     } else if (showSignup) {
-      setError('')
-      alert('User created successfully! You can now sign in.')
-      setShowSignup(false)
-      setEmail('')
-      setPassword('')
-      setDisplayName('')
+      const { error } = await signUp(email, password, displayName);
+      if (error) {
+        setError(error.message);
+        showNotification('Error creating account: ' + error.message, 'error');
+      } else {
+        showNotification('Account created successfully! Please sign in.', 'success');
+        setShowSignup(false);
+        setEmail('');
+        setPassword('');
+        setDisplayName('');
+      }
+    } else {
+      const { error } = await signIn(email, password);
+      if (error) {
+        setError(error.message);
+        showNotification('Error signing in: ' + error.message, 'error');
+      }
     }
     
     setLoading(false)
   }
+
+  const toggleForm = (formType: 'login' | 'signup' | 'forgotPassword') => {
+    setError(''); // Clear errors when switching forms
+    setEmail('');
+    setPassword('');
+    setDisplayName('');
+    setShowSignup(formType === 'signup');
+    setShowForgotPassword(formType === 'forgotPassword');
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -50,13 +72,13 @@ export function Login() {
            Wesley Church Sunday School Hub
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            {showSignup ? 'Create user account' : 'Sign in to access your dashboard'}
+            {showForgotPassword ? 'Enter your email to reset password' : (showSignup ? 'Create your account' : 'Sign in to access your dashboard')}
           </p>
         </div>
         
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
-            {showSignup && (
+            {showSignup && !showForgotPassword && (
               <div>
                 <label htmlFor="displayName" className="block text-sm font-medium text-gray-700">
                   Name
@@ -89,21 +111,23 @@ export function Login() {
               />
             </div>
             
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="input-field mt-1"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
+            {!showForgotPassword && (
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  className="input-field mt-1"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            )}
           </div>
 
           {error && (
@@ -118,17 +142,29 @@ export function Login() {
               disabled={loading}
               className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? (showSignup ? 'Creating...' : 'Signing in...') : (showSignup ? 'Create User' : 'Sign In')}
+              {loading ? (showForgotPassword ? 'Sending...' : (showSignup ? 'Creating...' : 'Signing in...')) : (showForgotPassword ? 'Send Reset Link' : (showSignup ? 'Create Account' : 'Sign In'))}
             </button>
           </div>
 
-          <div className="text-center">
+          <div className="text-center text-sm">
+            {!showForgotPassword && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => toggleForm(showSignup ? 'login' : 'signup')}
+                  className="font-medium text-blue-600 hover:text-blue-800"
+                >
+                  {showSignup ? 'Already have an account? Sign in' : 'Need to create an account? Sign up'}
+                </button>
+                <br />
+              </>
+            )}
             <button
               type="button"
-              onClick={() => setShowSignup(!showSignup)}
-              className="text-sm text-blue-600 hover:text-blue-800"
+              onClick={() => toggleForm(showForgotPassword ? 'login' : 'forgotPassword')}
+              className="font-medium text-blue-600 hover:text-blue-800 mt-2"
             >
-              {showSignup ? 'Already have an account? Sign in' : 'Need to create new user? Click here'}
+              {showForgotPassword ? 'Back to Sign In' : 'Forgot Password?'}
             </button>
           </div>
           

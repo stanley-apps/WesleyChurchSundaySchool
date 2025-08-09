@@ -9,6 +9,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signUp: (email: string, password: string, displayName: string) => Promise<{ error: any }>
   signOut: () => Promise<void>
+  resetPassword: (email: string) => Promise<{ error: any }> // New: Reset password function
 }
 
 // Add notification context for logout messages
@@ -100,6 +101,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // New: Reset password function
+  const resetPassword = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/dashboard`, // Redirect to dashboard after password reset
+    });
+    return { error };
+  };
+
   const showNotification = (message: string, type: 'success' | 'error' | 'info') => {
     setNotification({ message, type })
     // Auto-hide notification after 3 seconds
@@ -115,6 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signIn,
     signUp,
     signOut,
+    resetPassword, // Include new function in context value
   }
 
   const notificationValue = {
