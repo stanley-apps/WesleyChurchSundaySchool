@@ -153,13 +153,13 @@ export function LessonsList() {
     <ChildFriendlyBackground>
       <div className="p-6 pb-20 lg:pb-6">
         <div className="max-w-4xl mx-auto">
-          {/* Header for Lessons */}
+          {/* Header for Syllabuses */}
           <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900 drop-shadow-sm">Lessons 📚</h1>
+                <h1 className="text-2xl font-bold text-gray-900 drop-shadow-sm">Syllabuses 📚</h1>
                 <p className="mt-2 text-gray-700 drop-shadow-sm">
-                  Browse and download Sunday school lesson PDFs
+                  Browse and download Sunday school syllabus PDFs
                 </p>
               </div>
               <Link
@@ -173,29 +173,29 @@ export function LessonsList() {
               to="/dashboard/lessons/upload"
               className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-center whitespace-nowrap"
             >
-              ➕ Upload New Lesson
+              ➕ Upload New Syllabus
             </Link>
           </div>
 
-          {/* Lessons List */}
+          {/* Syllabuses List */}
           {errorLessons ? (
             <div className="bg-red-50/90 backdrop-blur-sm border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-              Error loading lessons: {errorLessons}
+              Error loading syllabuses: {errorLessons}
             </div>
           ) : lessons.length === 0 ? (
             <div className="text-center py-12 mb-12 bg-white/80 backdrop-blur-sm rounded-xl shadow-lg p-6 border border-white/50">
               <div className="text-gray-400 text-6xl mb-4">📚</div>
               <h3 className="text-lg font-medium text-gray-900 mb-2 drop-shadow-sm">
-                No lessons available
+                No syllabuses available
               </h3>
               <p className="text-gray-700 mb-4">
-                Start building your lesson collection by uploading your first PDF!
+                Start building your syllabus collection by uploading your first PDF!
               </p>
               <Link
                 to="/dashboard/lessons/upload"
                 className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
               >
-                ➕ Upload First Lesson
+                ➕ Upload First Syllabus
               </Link>
             </div>
           ) : (
@@ -330,6 +330,34 @@ export function LessonsList() {
               ))}
             </div>
           )}
+
+          {/* Header for Stories */}
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-8 border-t border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 drop-shadow-sm">Stories 📖</h2>
+                <p className="mt-2 text-gray-700 drop-shadow-sm">
+                  Engaging Bible stories for children
+                </p>
+              </div>
+            </div>
+            {/* You can add a link to an upload page for stories here later if needed */}
+            <div className="bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg text-center whitespace-nowrap opacity-70 cursor-not-allowed">
+              Coming Soon!
+            </div>
+          </div>
+
+          {/* Stories List - Placeholder */}
+          <div className="text-center py-12 bg-white/80 backdrop-blur-sm rounded-xl shadow-lg p-6 border border-white/50">
+            <div className="text-gray-400 text-6xl mb-4">✨</div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2 drop-shadow-sm">
+              Stories section is under development!
+            </h3>
+            <p className="text-gray-700 mb-4">
+              Check back soon for a collection of inspiring Bible stories.
+            </p>
+          </div>
+
         </div>
       </div>
     </ChildFriendlyBackground>
