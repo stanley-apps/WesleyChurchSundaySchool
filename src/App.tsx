@@ -7,13 +7,14 @@ import { Dashboard } from './pages/Dashboard'
 import { Songs } from './pages/Songs'
 import { SongDetail } from './pages/SongDetail'
 import { SongUpload } from './pages/SongUpload'
-import { LessonsList } from './pages/LessonsList' // This is now the hub
-import { SyllabusesList } from './pages/SyllabusesList' // New
-import { LessonUpload } from './pages/LessonUpload' // Renamed to SyllabusUpload conceptually
-import { LessonEdit } from './pages/LessonEdit' // Renamed to SyllabusEdit conceptually
-import { MemoryVersesList } from './pages/MemoryVersesList' // New
+import { LessonsList } from './pages/LessonsList'
+import { SyllabusesList } from './pages/SyllabusesList'
+import { LessonUpload } from './pages/LessonUpload'
+import { LessonEdit } from './pages/LessonEdit'
+import { MemoryVersesList } from './pages/MemoryVersesList'
 import { MemoryVerseUpload } from './pages/MemoryVerseUpload'
-import { StoriesList } from './pages/StoriesList' // New
+import { MemoryVerseDetail } from './pages/MemoryVerseDetail' // New import
+import { StoriesList } from './pages/StoriesList'
 
 function App() {
   return (
@@ -45,6 +46,7 @@ function App() {
             {/* Memory Verses Section */}
             <Route path="memory-verses" element={<MemoryVersesList />} />
             <Route path="memory-verses/upload" element={<MemoryVerseUpload />} />
+            <Route path="memory-verses/:id" element={<MemoryVerseDetail />} /> {/* New route */}
 
             {/* Stories Section */}
             <Route path="stories" element={<StoriesList />} />

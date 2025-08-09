@@ -18,8 +18,9 @@ export function MemoryVersesList() {
   const fuse = useMemo(() => {
     return new Fuse(memoryVerses, {
       keys: [
-        { name: 'verse_text', weight: 0.7 },
-        { name: 'reference', weight: 0.3 }
+        { name: 'verse_text', weight: 0.6 },
+        { name: 'reference', weight: 0.3 },
+        { name: 'hashtags', weight: 0.1 } // Add hashtags to search keys
       ],
       includeScore: true,
       threshold: 0.3, // Lower threshold = more strict matching
@@ -158,7 +159,7 @@ export function MemoryVersesList() {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search verses by text or reference... 🔍"
+                placeholder="Search verses by text, reference, or hashtags... 🔍"
                 className="w-full px-3 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
                 value={searchTerm}
                 onChange={handleSearchChange}
@@ -241,21 +242,35 @@ export function MemoryVersesList() {
                       <h3 className="text-lg font-semibold text-gray-900 mb-2 drop-shadow-sm">
                         - {searchTerm ? highlightSearchTerm(verse.reference, searchTerm) : verse.reference}
                       </h3>
-                      <div className="text-xs text-gray-500">
+                      {verse.hashtags && verse.hashtags.length > 0 && (
+                        <div className="mt-2 text-xs text-gray-500">
+                          {verse.hashtags.map((tag, tagIndex) => (
+                            <span key={tagIndex} className="inline-block bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full mr-1 mb-1">
+                              #{searchTerm ? highlightSearchTerm(tag, searchTerm) : tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="text-xs text-gray-500 mt-2">
                         Added {new Date(verse.created_at).toLocaleDateString()}
                       </div>
                     </div>
-                    {user && user.id === verse.user_id && (
-                      <div className="ml-4 flex flex-col gap-2">
-                        {/* Edit functionality for memory verses can be added later if needed */}
+                    <div className="ml-4 flex flex-col gap-2">
+                      <Link
+                        to={`/dashboard/memory-verses/${verse.id}`}
+                        className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-center whitespace-nowrap flex items-center justify-center gap-1"
+                      >
+                        👁️ View
+                      </Link>
+                      {user && user.id === verse.user_id && (
                         <button
                           onClick={() => handleDeleteMemoryVerse(verse.id)}
                           className="bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-center whitespace-nowrap flex items-center justify-center gap-1"
                         >
                           🗑️ Delete
                         </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}

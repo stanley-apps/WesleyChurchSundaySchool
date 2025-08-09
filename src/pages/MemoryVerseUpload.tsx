@@ -7,6 +7,7 @@ import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
 export function MemoryVerseUpload() {
   const [verseText, setVerseText] = useState('')
   const [reference, setReference] = useState('')
+  const [hashtags, setHashtags] = useState('') // New state for hashtags input
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
@@ -31,6 +32,11 @@ export function MemoryVerseUpload() {
     setLoading(true)
     setError('')
 
+    // Process hashtags: split by comma or space, trim, filter empty, convert to lowercase
+    const processedHashtags = hashtags.split(/[\s,]+/)
+                                     .map(tag => tag.trim().toLowerCase())
+                                     .filter(tag => tag.length > 0);
+
     try {
       const { error: insertError } = await supabase
         .from('memory_verses')
@@ -38,6 +44,7 @@ export function MemoryVerseUpload() {
           {
             verse_text: verseText.trim(),
             reference: reference.trim(),
+            hashtags: processedHashtags.length > 0 ? processedHashtags : null, // Store as array or null
             user_id: user.id
           }
         ])
@@ -120,6 +127,21 @@ export function MemoryVerseUpload() {
                   placeholder="e.g., John 3:16, Psalm 23:1-3"
                   required
                 />
+              </div>
+
+              <div>
+                <label htmlFor="hashtags" className="block text-sm font-medium text-gray-700 mb-2">
+                  Hashtags (Optional)
+                </label>
+                <input
+                  type="text"
+                  id="hashtags"
+                  value={hashtags}
+                  onChange={(e) => setHashtags(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
+                  placeholder="e.g., love, faith, hope, salvation (comma or space separated)"
+                />
+                <p className="mt-1 text-xs text-gray-500">Separate tags with commas or spaces.</p>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4">

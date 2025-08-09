@@ -33,4 +33,5 @@ export type MemoryVerse = {
   verse_text: string
   reference: string
   created_at: string
+  hashtags: string[] | null // New: Add hashtags
 }
