@@ -13,7 +13,8 @@ import { LessonUpload } from './pages/LessonUpload'
 import { LessonEdit } from './pages/LessonEdit'
 import { MemoryVersesList } from './pages/MemoryVersesList'
 import { MemoryVerseUpload } from './pages/MemoryVerseUpload'
-import { MemoryVerseDetail } from './pages/MemoryVerseDetail' // New import
+import { MemoryVerseDetail } from './pages/MemoryVerseDetail'
+import { MemoryVerseEdit } from './pages/MemoryVerseEdit' // New import
 import { StoriesList } from './pages/StoriesList'
 
 function App() {
@@ -46,7 +47,8 @@ function App() {
             {/* Memory Verses Section */}
             <Route path="memory-verses" element={<MemoryVersesList />} />
             <Route path="memory-verses/upload" element={<MemoryVerseUpload />} />
-            <Route path="memory-verses/:id" element={<MemoryVerseDetail />} /> {/* New route */}
+            <Route path="memory-verses/:id" element={<MemoryVerseDetail />} />
+            <Route path="memory-verses/:id/edit" element={<MemoryVerseEdit />} /> {/* New route */}
 
             {/* Stories Section */}
             <Route path="stories" element={<StoriesList />} />

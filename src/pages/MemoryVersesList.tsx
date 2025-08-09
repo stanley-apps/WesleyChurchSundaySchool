@@ -263,12 +263,20 @@ export function MemoryVersesList() {
                         👁️ View
                       </Link>
                       {user && user.id === verse.user_id && (
-                        <button
-                          onClick={() => handleDeleteMemoryVerse(verse.id)}
-                          className="bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-center whitespace-nowrap flex items-center justify-center gap-1"
-                        >
-                          🗑️ Delete
-                        </button>
+                        <>
+                          <Link
+                            to={`/dashboard/memory-verses/${verse.id}/edit`}
+                            className="bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-center whitespace-nowrap flex items-center justify-center gap-1"
+                          >
+                            ✏️ Edit
+                          </Link>
+                          <button
+                            onClick={() => handleDeleteMemoryVerse(verse.id)}
+                            className="bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-center whitespace-nowrap flex items-center justify-center gap-1"
+                          >
+                            🗑️ Delete
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>

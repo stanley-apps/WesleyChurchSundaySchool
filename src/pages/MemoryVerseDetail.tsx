@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase, MemoryVerse } from '../lib/supabase'
 import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
+import { useAuth } from '../contexts/AuthContext' // Import useAuth
 
 export function MemoryVerseDetail() {
   const { id } = useParams<{ id: string }>()
+  const { user } = useAuth() // Get current user
   const [verse, setVerse] = useState<MemoryVerse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -67,6 +69,8 @@ export function MemoryVerseDetail() {
     )
   }
 
+  const canEdit = user && user.id === verse.user_id;
+
   return (
     <ChildFriendlyBackground>
       <div className="px-4 sm:px-8 py-6 pb-20 lg:pb-6">
@@ -128,6 +132,14 @@ export function MemoryVerseDetail() {
                 >
                   📋 Copy Verse
                 </button>
+                {canEdit && (
+                  <Link
+                    to={`/dashboard/memory-verses/${verse.id}/edit`}
+                    className="bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 text-center flex items-center justify-center gap-2"
+                  >
+                    ✏️ Edit Verse
+                  </Link>
+                )}
                 <Link
                   to="/dashboard/memory-verses/upload"
                   className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 text-center flex items-center justify-center gap-2"
