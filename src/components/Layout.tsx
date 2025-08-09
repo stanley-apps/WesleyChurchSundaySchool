@@ -153,7 +153,7 @@ export function Layout() {
                     ) : (
                       <>
                         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013 3v1" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                         </svg>
                         Sign Out
                       </>
@@ -199,6 +199,7 @@ export function Layout() {
               <Link
                 key={item.name}
                 to={item.href}
+                onClick={() => console.log(`Mobile nav clicked: ${item.href}`)}
                 className={`flex-1 flex flex-col items-center py-4 px-2 transition-colors min-h-[60px] touch-manipulation ${
                   isActive ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
