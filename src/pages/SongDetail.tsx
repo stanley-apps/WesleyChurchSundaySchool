@@ -82,7 +82,7 @@ export function SongDetail() {
         .from('songs')
         .update({ lyrics: editedLyrics.trim(), title: editedTitle.trim() })
         .eq('id', song.id)
-        .eq('user_id', user.id) // Ensure only the owner can update
+        // Removed .eq('user_id', user.id) to allow any authenticated user to update
 
       if (error) throw error
 
