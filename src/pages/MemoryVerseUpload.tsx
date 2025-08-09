@@ -45,7 +45,7 @@ export function MemoryVerseUpload() {
       if (insertError) throw insertError
 
       showNotification('Memory verse added successfully! 📖', 'success')
-      navigate('/dashboard/lessons') // Redirect back to lessons list
+      navigate('/dashboard/memory-verses') // Redirect back to memory verses list
     } catch (err: any) {
       console.error('Error adding memory verse:', err)
       setError(err.message)
@@ -61,13 +61,13 @@ export function MemoryVerseUpload() {
         <div className="max-w-4xl mx-auto">
           <div className="mb-6 flex items-center justify-between">
             <Link
-              to="/dashboard/lessons"
+              to="/dashboard/memory-verses"
               className="inline-flex items-center text-blue-600 hover:text-blue-800 drop-shadow-sm"
             >
               <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              Back to Lessons
+              Back to Memory Verses
             </Link>
             <Link
               to="/dashboard"
@@ -141,7 +141,7 @@ export function MemoryVerseUpload() {
                   )}
                 </button>
                 <Link
-                  to="/dashboard/lessons"
+                  to="/dashboard/memory-verses"
                   className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-6 rounded-lg transition-colors duration-200 text-center"
                 >
                   Cancel

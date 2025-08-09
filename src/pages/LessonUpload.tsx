@@ -88,7 +88,7 @@ export function LessonUpload() {
       if (insertError) throw insertError
 
       showNotification('Lesson uploaded successfully! ✅', 'success')
-      navigate('/dashboard/lessons') // Redirect to lessons list on success
+      navigate('/dashboard/syllabuses') // Redirect to syllabuses list on success
     } catch (err: any) {
       console.error('Upload error:', err)
       setError(err.message)
@@ -104,13 +104,13 @@ export function LessonUpload() {
         <div className="max-w-4xl mx-auto">
           <div className="mb-6 flex items-center justify-between">
             <Link
-              to="/dashboard/lessons"
+              to="/dashboard/syllabuses"
               className="inline-flex items-center text-blue-600 hover:text-blue-800 drop-shadow-sm"
             >
               <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              Back to Lessons
+              Back to Syllabuses
             </Link>
             <Link
               to="/dashboard"
@@ -122,9 +122,9 @@ export function LessonUpload() {
 
           <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 border border-white/50">
             <div className="mb-6">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2 drop-shadow-sm">Upload New Lesson 📚</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2 drop-shadow-sm">Upload New Syllabus 📚</h1>
               <p className="text-gray-700 drop-shadow-sm">
-                Add a new lesson PDF to the Sunday School collection.
+                Add a new syllabus PDF to the Sunday School collection.
               </p>
             </div>
 
@@ -137,7 +137,7 @@ export function LessonUpload() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                  Lesson Title *
+                  Syllabus Title *
                 </label>
                 <input
                   type="text"
@@ -145,7 +145,7 @@ export function LessonUpload() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
-                  placeholder="Enter the lesson title..."
+                  placeholder="Enter the syllabus title..."
                   required
                 />
               </div>
@@ -160,7 +160,7 @@ export function LessonUpload() {
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm resize-vertical"
-                  placeholder="Briefly describe the lesson..."
+                  placeholder="Briefly describe the syllabus..."
                 />
               </div>
 
@@ -213,11 +213,11 @@ export function LessonUpload() {
                       Uploading...
                     </span>
                   ) : (
-                    '📚 Upload Lesson'
+                    '📚 Upload Syllabus'
                   )}
                 </button>
                 <Link
-                  to="/dashboard/lessons"
+                  to="/dashboard/syllabuses"
                   className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-6 rounded-lg transition-colors duration-200 text-center"
                 >
                   Cancel

@@ -37,8 +37,8 @@ export function LessonEdit() {
 
       if (error) throw error
       if (!data) {
-        setError('Lesson not found.')
-        showNotification('Lesson not found.', 'error')
+        setError('Syllabus not found.')
+        showNotification('Syllabus not found.', 'error')
         return
       }
 
@@ -47,9 +47,9 @@ export function LessonEdit() {
 
       // Check if the current user is the owner of the lesson
       if (user && lessonData.user_id !== user.id) {
-        setError('You do not have permission to edit this lesson.')
-        showNotification('You do not have permission to edit this lesson.', 'error')
-        navigate('/dashboard/lessons') // Redirect if not authorized
+        setError('You do not have permission to edit this syllabus.')
+        showNotification('You do not have permission to edit this syllabus.', 'error')
+        navigate('/dashboard/syllabuses') // Redirect if not authorized
         return
       }
 
@@ -58,9 +58,9 @@ export function LessonEdit() {
       setClassLevel(lessonData.class_level || '')
       setCurrentFileUrl(lessonData.file_url)
     } catch (err: any) {
-      console.error('Error fetching lesson:', err)
+      console.error('Error fetching syllabus:', err)
       setError(err.message)
-      showNotification('Error fetching lesson: ' + err.message, 'error')
+      showNotification('Error fetching syllabus: ' + err.message, 'error')
     } finally {
       setLoading(false)
     }
@@ -83,14 +83,14 @@ export function LessonEdit() {
     e.preventDefault()
     
     if (!user || !id) {
-      setError('Authentication error or lesson ID missing.')
-      showNotification('Authentication error or lesson ID missing.', 'error')
+      setError('Authentication error or syllabus ID missing.')
+      showNotification('Authentication error or syllabus ID missing.', 'error')
       return
     }
 
     if (!title.trim()) {
-      setError('Please fill in the lesson title.')
-      showNotification('Please fill in the lesson title.', 'error')
+      setError('Please fill in the syllabus title.')
+      showNotification('Please fill in the syllabus title.', 'error')
       return
     }
 
@@ -162,12 +162,12 @@ export function LessonEdit() {
 
       if (updateError) throw updateError
 
-      showNotification('Lesson updated successfully! ✅', 'success')
-      navigate('/dashboard/lessons') // Redirect to lessons list on success
+      showNotification('Syllabus updated successfully! ✅', 'success')
+      navigate('/dashboard/syllabuses') // Redirect to syllabuses list on success
     } catch (err: any) {
       console.error('Update error:', err)
       setError(err.message)
-      showNotification('Error updating lesson: ' + err.message, 'error')
+      showNotification('Error updating syllabus: ' + err.message, 'error')
     } finally {
       setSaving(false)
     }
@@ -187,7 +187,7 @@ export function LessonEdit() {
     )
   }
 
-  if (error && error !== 'You do not have permission to edit this lesson.') { // Display error unless it's a permission error handled by redirect
+  if (error && error !== 'You do not have permission to edit this syllabus.') { // Display error unless it's a permission error handled by redirect
     return (
       <ChildFriendlyBackground>
         <div className="p-6 pb-20 lg:pb-6">
@@ -196,10 +196,10 @@ export function LessonEdit() {
               Error: {error}
             </div>
             <Link 
-              to="/dashboard/lessons" 
+              to="/dashboard/syllabuses" 
               className="mt-4 inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
             >
-              Back to Lessons
+              Back to Syllabuses
             </Link>
           </div>
         </div>
@@ -213,13 +213,13 @@ export function LessonEdit() {
         <div className="max-w-4xl mx-auto">
           <div className="mb-6 flex items-center justify-between">
             <Link
-              to="/dashboard/lessons"
+              to="/dashboard/syllabuses"
               className="inline-flex items-center text-blue-600 hover:text-blue-800 drop-shadow-sm"
             >
               <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              Back to Lessons
+              Back to Syllabuses
             </Link>
             <Link
               to="/dashboard"
@@ -231,9 +231,9 @@ export function LessonEdit() {
 
           <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 border border-white/50">
             <div className="mb-6">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2 drop-shadow-sm">Edit Lesson 📚</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2 drop-shadow-sm">Edit Syllabus 📚</h1>
               <p className="text-gray-700 drop-shadow-sm">
-                Update the details or replace the PDF file for this lesson.
+                Update the details or replace the PDF file for this syllabus.
               </p>
             </div>
 
@@ -246,7 +246,7 @@ export function LessonEdit() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                  Lesson Title *
+                  Syllabus Title *
                 </label>
                 <input
                   type="text"
@@ -254,7 +254,7 @@ export function LessonEdit() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
-                  placeholder="Enter the lesson title..."
+                  placeholder="Enter the syllabus title..."
                   required
                 />
               </div>
@@ -269,7 +269,7 @@ export function LessonEdit() {
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm resize-vertical"
-                  placeholder="Briefly describe the lesson..."
+                  placeholder="Briefly describe the syllabus..."
                 />
               </div>
 
@@ -330,7 +330,7 @@ export function LessonEdit() {
                   )}
                 </button>
                 <Link
-                  to="/dashboard/lessons"
+                  to="/dashboard/syllabuses"
                   className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-6 rounded-lg transition-colors duration-200 text-center"
                 >
                   Cancel

@@ -7,7 +7,8 @@ import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
 export function Dashboard() {
   const { user, signOut } = useAuth()
   const [songCount, setSongCount] = useState(0)
-  const [lessonCount, setLessonCount] = useState(0) // New state for lesson count
+  const [lessonCount, setLessonCount] = useState(0) // This now represents syllabus count
+  const [memoryVerseCount, setMemoryVerseCount] = useState(0) // New state for memory verse count
   const [loading, setLoading] = useState(true)
   const [displayName, setDisplayName] = useState('')
 
@@ -26,12 +27,19 @@ export function Dashboard() {
       if (songError) throw songError
       setSongCount(songC || 0)
 
-      // Fetch lesson count
+      // Fetch lesson (syllabus) count
       const { count: lessonC, error: lessonError } = await supabase
         .from('lessons')
         .select('*', { count: 'exact', head: true })
       if (lessonError) throw lessonError
       setLessonCount(lessonC || 0)
+
+      // Fetch memory verse count
+      const { count: mvC, error: mvError } = await supabase
+        .from('memory_verses')
+        .select('*', { count: 'exact', head: true })
+      if (mvError) throw mvError
+      setMemoryVerseCount(mvC || 0)
 
       // Fetch display name
       if (user?.id) {
@@ -49,6 +57,7 @@ export function Dashboard() {
       console.error('Error fetching dashboard data:', err)
       setSongCount(0)
       setLessonCount(0)
+      setMemoryVerseCount(0)
     } finally {
       setLoading(false)
     }
@@ -65,13 +74,15 @@ export function Dashboard() {
       countLabel: 'songs'
     },
     {
-      icon: '📚',
-      title: 'Lessons',
-      description: 'Interactive Bible lessons and PDFs',
-      href: '/dashboard/lessons', // Updated href
-      available: true, // Enabled Lessons
-      count: lessonCount,
-      countLabel: 'lessons'
+      icon: '🎓', // Changed icon to represent the hub
+      title: 'Lessons Hub', // Changed title
+      description: loading 
+        ? 'Loading lesson counts...' 
+        : `Syllabuses (${lessonCount}), Memory Verses (${memoryVerseCount}), and Stories`, // Updated description to use counts
+      href: '/dashboard/lessons', // Link to the new hub page
+      available: true,
+      // No direct count here, as it's a hub for multiple types
+      // You could add a combined count if desired, e.g., count: lessonCount + memoryVerseCount
     },
     {
       icon: '🎮',
