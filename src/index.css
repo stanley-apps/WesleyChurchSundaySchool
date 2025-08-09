@@ -108,12 +108,11 @@
     width: 100vw !important;
     height: 100vh !important;
     z-index: 9999 !important; /* Ensure it's on top */
-    background-color: #1a202c !important; /* Dark background for contrast */
-    color: #f7fafc !important; /* Light text color */
+    background-color: black !important; /* Black background */
+    color: white !important; /* White text color */
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important; /* Keep for horizontal centering of prose block */
-    /* Removed justify-content: center to allow content to start from top */
     padding: 4rem !important; /* Increased padding for better spacing */
     border-radius: 0 !important;
     box-shadow: none !important;

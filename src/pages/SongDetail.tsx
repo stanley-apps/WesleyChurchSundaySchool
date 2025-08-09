@@ -16,6 +16,7 @@ export function SongDetail() {
   const [editedTitle, setEditedTitle] = useState('')
   const [saving, setSaving] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [fontSize, setFontSize] = useState(20); // Initial font size for lyrics, corresponds to text-xl
 
   const lyricsDisplayRef = useRef<HTMLDivElement>(null) // Ref for the lyrics container
 
@@ -146,6 +147,14 @@ export function SongDetail() {
       }
     }
   }
+
+  const increaseFontSize = () => {
+    setFontSize(prevSize => Math.min(prevSize + 2, 48)); // Max font size 48px
+  };
+
+  const decreaseFontSize = () => {
+    setFontSize(prevSize => Math.max(prevSize - 2, 16)); // Min font size 16px
+  };
 
   if (loading) {
     return (
@@ -288,8 +297,26 @@ export function SongDetail() {
                 </div>
               ) : (
                 <div ref={lyricsDisplayRef} className={`bg-white/90 backdrop-blur-sm p-8 rounded-lg border border-gray-200/50 shadow-sm ${isFullscreen ? 'fullscreen-active' : ''}`}>
-                  <div className="prose prose-lg max-w-none text-center">
-                    <ReactMarkdown className="font-serif text-xl leading-loose whitespace-pre-line">
+                  {isFullscreen && (
+                    <div className="absolute top-4 right-4 flex gap-2 z-50">
+                      <button
+                        onClick={decreaseFontSize}
+                        className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-full text-lg"
+                        title="Decrease font size"
+                      >
+                        A-
+                      </button>
+                      <button
+                        onClick={increaseFontSize}
+                        className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-full text-lg"
+                        title="Increase font size"
+                      >
+                        A+
+                      </button>
+                    </div>
+                  )}
+                  <div className="prose prose-lg max-w-none text-center" style={{ fontSize: `${fontSize}px` }}>
+                    <ReactMarkdown className="font-serif leading-loose whitespace-pre-line">
                       {song.lyrics}
                     </ReactMarkdown>
                   </div>
