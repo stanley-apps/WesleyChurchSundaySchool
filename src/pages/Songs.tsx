@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import Fuse from 'fuse.js'
 import { supabase, Song } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground' // Added this import
+import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
 
 export function Songs() {
   const { /* user */ } = useAuth()
@@ -12,6 +12,7 @@ export function Songs() {
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [showScrollToTop, setShowScrollToTop] = useState(false) // New state for scroll button
 
   // Initialize Fuse.js with fuzzy search options
   const fuse = useMemo(() => {
@@ -35,6 +36,20 @@ export function Songs() {
   useEffect(() => {
     handleSearch(searchTerm)
   }, [searchTerm, songs, fuse])
+
+  // Effect to handle scroll event for "Back to Top" button
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 300) { // Show button after scrolling 300px down
+        setShowScrollToTop(true)
+      } else {
+        setShowScrollToTop(false)
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   const fetchSongs = async () => {
     try {
@@ -82,6 +97,13 @@ export function Songs() {
         <mark key={index} className="bg-yellow-200 px-1 rounded">{part}</mark>
       ) : part
     )
+  }
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth' // Smooth scroll animation
+    })
   }
 
   if (loading) {
@@ -260,6 +282,19 @@ export function Songs() {
           )}
         </div>
       </div>
+
+      {showScrollToTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-24 right-6 lg:bottom-6 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all duration-300 z-40 animate-bounce-once"
+          title="Scroll to top"
+        >
+          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+          </svg>
+          <span className="sr-only">Scroll to top</span>
+        </button>
+      )}
     </ChildFriendlyBackground>
   )
 }
