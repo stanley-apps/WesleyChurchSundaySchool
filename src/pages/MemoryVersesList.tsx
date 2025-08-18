@@ -262,7 +262,7 @@ export function MemoryVersesList() {
                       >
                         👁️ View
                       </Link>
-                      {user && user.id === verse.user_id && (
+                      {user && (
                         <>
                           <Link
                             to={`/dashboard/memory-verses/${verse.id}/edit`}
