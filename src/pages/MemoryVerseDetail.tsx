@@ -69,7 +69,7 @@ export function MemoryVerseDetail() {
     )
   }
 
-  const canEdit = user && user.id === verse.user_id;
+  const canEdit = user;
 
   return (
     <ChildFriendlyBackground>
