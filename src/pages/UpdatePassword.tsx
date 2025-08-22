@@ -1,24 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth, useNotification } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase'; // Correct import path
 import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground';
+import { useNotification } from '../contexts/AuthContext'; // Keep useNotification
 
 export function UpdatePassword() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [isResetRequested, setIsResetRequested] = useState(false);
   const navigate = useNavigate();
-  const { user, updateUserPassword } = useAuth(); // Assuming updateUserPassword is added to useAuth
   const { showNotification } = useNotification();
+
+  useEffect(() => {
+    const resetRequested = sessionStorage.getItem('passwordResetRequested');
+    setIsResetRequested(!!resetRequested);
+
+    // Clean up the flag after checking
+    // This ensures the flag is only active for one visit to this page
+    // and prevents direct access without a reset flow.
+    return () => {
+      sessionStorage.removeItem('passwordResetRequested');
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError(null);
 
-    if (!user) {
-      setError('You must be logged in to update your password. Please try the reset link again.');
-      showNotification('Authentication error. Please try the reset link again.', 'error');
+    if (!isResetRequested) {
+      showNotification('Password reset not initiated. Please use the "Forgot Password" link.', 'error');
+      navigate('/login');
       return;
     }
 
@@ -34,12 +47,16 @@ export function UpdatePassword() {
 
     setLoading(true);
     try {
-      const { error: updateError } = await updateUserPassword(newPassword); // Call the new function
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
       if (updateError) {
         throw updateError;
       }
       showNotification('Your password has been updated successfully! ✅', 'success');
-      navigate('/dashboard'); // Redirect to dashboard after successful update
+      sessionStorage.removeItem('passwordResetRequested'); // Clear flag on success
+      navigate('/dashboard');
     } catch (err: any) {
       console.error('Password update error:', err);
       setError(err.message);
@@ -48,6 +65,14 @@ export function UpdatePassword() {
       setLoading(false);
     }
   };
+
+  // If reset was not requested, redirect immediately
+  if (!loading && !isResetRequested) {
+    // Only redirect if not currently loading (to avoid flicker) and not requested
+    // This handles direct access to /update-password without a reset flow
+    navigate('/login'); // Redirect to login if no reset was requested
+    return null;
+  }
 
   return (
     <ChildFriendlyBackground>

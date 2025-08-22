@@ -10,7 +10,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, displayName: string) => Promise<{ error: any }>
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<{ error: any }>
-  updateUserPassword: (newPassword: string) => Promise<{ error: any }> // New: Update password function
+  // updateUserPassword: (newPassword: string) => Promise<{ error: any }> // Removed
 }
 
 // Add notification context for logout messages
@@ -99,18 +99,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resetPassword = async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/update-password`, // Redirect to the new update password page
+      redirectTo: `${window.location.origin}/auth-confirm`, // Changed redirect to AuthConfirm
     });
     return { error };
   };
 
-  // New: Function to update the user's password
-  const updateUserPassword = async (newPassword: string) => {
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword,
-    });
-    return { error };
-  };
+  // Removed updateUserPassword function as it's now handled directly in UpdatePassword.tsx
+  // const updateUserPassword = async (newPassword: string) => {
+  //   const { error } = await supabase.auth.updateUser({
+  //     password: newPassword,
+  //   });
+  //   return { error };
+  // };
 
   const showNotification = (message: string, type: 'success' | 'error' | 'info') => {
     setNotification({ message, type })
@@ -128,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signUp,
     signOut,
     resetPassword,
-    updateUserPassword, // Include new function in context value
+    // updateUserPassword, // Removed from context value
   }
 
   const notificationValue = {

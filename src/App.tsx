@@ -16,7 +16,8 @@ import { MemoryVerseUpload } from './pages/MemoryVerseUpload'
 import { MemoryVerseDetail } from './pages/MemoryVerseDetail'
 import { MemoryVerseEdit } from './pages/MemoryVerseEdit'
 import { StoriesList } from './pages/StoriesList'
-import { UpdatePassword } from './pages/UpdatePassword' // New import
+import { UpdatePassword } from './pages/UpdatePassword'
+import { AuthConfirm } from './pages/AuthConfirm' // New import
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/auth-confirm" element={<AuthConfirm />} /> {/* New route for AuthConfirm */}
           <Route
             path="/dashboard"
             element={
@@ -42,8 +44,8 @@ function App() {
             
             {/* Syllabuses Section */}
             <Route path="syllabuses" element={<SyllabusesList />} />
-            <Route path="syllabuses/upload" element={<LessonUpload />} /> {/* Re-using LessonUpload for Syllabuses */}
-            <Route path="syllabuses/:id/edit" element={<LessonEdit />} /> {/* Re-using LessonEdit for Syllabuses */}
+            <Route path="syllabuses/upload" element={<LessonUpload />} />
+            <Route path="syllabuses/:id/edit" element={<LessonEdit />} />
 
             {/* Memory Verses Section */}
             <Route path="memory-verses" element={<MemoryVersesList />} />
@@ -54,11 +56,11 @@ function App() {
             {/* Stories Section */}
             <Route path="stories" element={<StoriesList />} />
           </Route>
-          {/* New route for updating password */}
+          {/* UpdatePassword route should be protected, as the AuthConfirm handles the initial session setting */}
           <Route 
             path="/update-password" 
             element={
-              <ProtectedRoute>
+              <ProtectedRoute> {/* Keep protected, as user should have a session by now */}
                 <UpdatePassword />
               </ProtectedRoute>
             } 
