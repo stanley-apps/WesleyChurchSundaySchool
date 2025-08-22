@@ -117,9 +117,9 @@ export function Dashboard() {
           {/* Logout Button - Prominent placement */}
           <div className="mb-8 flex justify-end">
             <button
-              onClick={() => {
+              onClick={async () => { // Made onClick async
                 if (window.confirm('Are you sure you want to sign out?')) {
-                  signOut()
+                  await signOut() // Await signOut
                 }
               }}
               className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"

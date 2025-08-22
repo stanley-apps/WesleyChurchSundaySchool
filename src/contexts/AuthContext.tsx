@@ -90,8 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error
       }
       // Clear any local storage or session storage if needed
-      localStorage.removeItem('supabase.auth.token')
-      sessionStorage.clear()
+      // Removed manual clearing of local/session storage, relying on Supabase's signOut and onAuthStateChange.
       
       // Show success notification
       showNotification('Successfully logged out! 👋', 'success')
