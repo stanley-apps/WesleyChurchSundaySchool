@@ -9,7 +9,8 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signUp: (email: string, password: string, displayName: string) => Promise<{ error: any }>
   signOut: () => Promise<void>
-  resetPassword: (email: string) => Promise<{ error: any }> // New: Reset password function
+  resetPassword: (email: string) => Promise<{ error: any }>
+  updateUserPassword: (newPassword: string) => Promise<{ error: any }> // New: Update password function
 }
 
 // Add notification context for logout messages
@@ -89,10 +90,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) {
         throw error
       }
-      // Clear any local storage or session storage if needed
-      // Removed manual clearing of local/session storage, relying on Supabase's signOut and onAuthStateChange.
-      
-      // Show success notification
       showNotification('Successfully logged out! 👋', 'success')
     } catch (error: any) {
       console.error('Logout error:', error)
@@ -100,10 +97,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // New: Reset password function
   const resetPassword = async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/dashboard`, // Redirect to dashboard after password reset
+      redirectTo: `${window.location.origin}/update-password`, // Redirect to the new update password page
+    });
+    return { error };
+  };
+
+  // New: Function to update the user's password
+  const updateUserPassword = async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
     });
     return { error };
   };
@@ -123,7 +127,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signIn,
     signUp,
     signOut,
-    resetPassword, // Include new function in context value
+    resetPassword,
+    updateUserPassword, // Include new function in context value
   }
 
   const notificationValue = {

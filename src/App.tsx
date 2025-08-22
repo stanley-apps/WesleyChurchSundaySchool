@@ -14,8 +14,9 @@ import { LessonEdit } from './pages/LessonEdit'
 import { MemoryVersesList } from './pages/MemoryVersesList'
 import { MemoryVerseUpload } from './pages/MemoryVerseUpload'
 import { MemoryVerseDetail } from './pages/MemoryVerseDetail'
-import { MemoryVerseEdit } from './pages/MemoryVerseEdit' // New import
+import { MemoryVerseEdit } from './pages/MemoryVerseEdit'
 import { StoriesList } from './pages/StoriesList'
+import { UpdatePassword } from './pages/UpdatePassword' // New import
 
 function App() {
   return (
@@ -48,11 +49,20 @@ function App() {
             <Route path="memory-verses" element={<MemoryVersesList />} />
             <Route path="memory-verses/upload" element={<MemoryVerseUpload />} />
             <Route path="memory-verses/:id" element={<MemoryVerseDetail />} />
-            <Route path="memory-verses/:id/edit" element={<MemoryVerseEdit />} /> {/* New route */}
+            <Route path="memory-verses/:id/edit" element={<MemoryVerseEdit />} />
 
             {/* Stories Section */}
             <Route path="stories" element={<StoriesList />} />
           </Route>
+          {/* New route for updating password */}
+          <Route 
+            path="/update-password" 
+            element={
+              <ProtectedRoute>
+                <UpdatePassword />
+              </ProtectedRoute>
+            } 
+          />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </Router>
