@@ -1,17 +1,32 @@
-import React, { useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom' // Added useNavigate
 import { useAuth, useNotification } from '../contexts/AuthContext' // Import useNotification
 
 export function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
-  const [error, setError] = useState('')
+  const [localError, setLocalError] = useState('') // Renamed to avoid conflict with location.state.error
   const [loading, setLoading] = useState(false)
   const [showSignup, setShowSignup] = useState(false)
-  const [showForgotPassword, setShowForgotPassword] = useState(false) // New state for forgot password form
-  const { user, signIn, signUp, resetPassword } = useAuth() // Destructure resetPassword
-  const { showNotification } = useNotification() // Use notification context
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
+  const { user, signIn, signUp, resetPassword } = useAuth()
+  const { showNotification } = useNotification()
+  const location = useLocation() // Get location object
+  const navigate = useNavigate() // Initialized useNavigate
+
+  // Effect to check for errors passed via navigation state
+  useEffect(() => {
+    const state = location.state as { error?: string, details?: string } | undefined;
+    if (state?.error) {
+      console.error('Login Page received error from navigation state:', state.error, state.details);
+      setLocalError(state.error); // Set local error state
+      showNotification(state.error + (state.details ? ` Details: ${state.details}` : ''), 'error');
+      // Clear the state so the error doesn't persist on subsequent visits
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, showNotification, navigate]); // Added navigate to dependency array
+
 
   if (user) {
     return <Navigate to="/dashboard" replace />
@@ -19,13 +34,13 @@ export function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
+    setLocalError('') // Clear local error before new submission
     setLoading(true)
 
     if (showForgotPassword) {
       const { error } = await resetPassword(email);
       if (error) {
-        setError(error.message);
+        setLocalError(error.message);
         showNotification('Error sending reset link: ' + error.message, 'error');
       } else {
         showNotification('Password reset link sent to your email!', 'success');
@@ -35,7 +50,7 @@ export function Login() {
     } else if (showSignup) {
       const { error } = await signUp(email, password, displayName);
       if (error) {
-        setError(error.message);
+        setLocalError(error.message);
         showNotification('Error creating account: ' + error.message, 'error');
       } else {
         showNotification('Account created successfully! Please sign in.', 'success');
@@ -47,7 +62,7 @@ export function Login() {
     } else {
       const { error } = await signIn(email, password);
       if (error) {
-        setError(error.message);
+        setLocalError(error.message);
         showNotification('Error signing in: ' + error.message, 'error');
       }
     }
@@ -56,7 +71,7 @@ export function Login() {
   }
 
   const toggleForm = (formType: 'login' | 'signup' | 'forgotPassword') => {
-    setError(''); // Clear errors when switching forms
+    setLocalError(''); // Clear errors when switching forms
     setEmail('');
     setPassword('');
     setDisplayName('');
@@ -130,9 +145,9 @@ export function Login() {
             )}
           </div>
 
-          {error && (
+          {localError && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
-              {error}
+              {localError}
             </div>
           )}
 

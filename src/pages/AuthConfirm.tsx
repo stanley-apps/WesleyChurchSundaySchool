@@ -1,64 +1,74 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground';
 import { useNotification } from '../contexts/AuthContext';
 
 export function AuthConfirm() {
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { showNotification } = useNotification();
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState('Processing authentication...');
+  const [message, setMessage] = useState('Verifying authentication...');
 
   useEffect(() => {
     const handleAuthConfirmation = async () => {
-      const params = new URLSearchParams(window.location.hash.substring(1)); // Get params from hash
-      const accessToken = params.get('access_token');
-      const refreshToken = params.get('refresh_token');
-      const type = params.get('type'); // e.g., 'recovery'
+      const token_hash = searchParams.get('token_hash');
+      const type = searchParams.get('type'); // Should be 'recovery' for password resets
 
-      if (accessToken && refreshToken) {
-        try {
-          const { error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
+      console.log('AuthConfirm: Received params:', { token_hash, type });
 
-          if (error) {
-            console.error('Error setting session:', error);
-            setMessage('Failed to confirm authentication. Please try again.');
-            showNotification('Failed to confirm authentication. Please try again.', 'error');
-            navigate('/login'); // Redirect to login on error
-            return;
-          }
-
-          // If it's a password recovery, set a flag and redirect to update-password
-          if (type === 'recovery') {
-            sessionStorage.setItem('passwordResetRequested', 'true');
-            showNotification('Please set your new password.', 'info');
-            navigate('/update-password');
-          } else {
-            // For other types of auth confirmation (e.g., email verification), redirect to dashboard
-            showNotification('Authentication successful!', 'success');
-            navigate('/dashboard');
-          }
-        } catch (err: any) {
-          console.error('Unexpected error during auth confirmation:', err);
-          setMessage('An unexpected error occurred. Please try again.');
-          showNotification('An unexpected error occurred. Please try again.', 'error');
-          navigate('/login');
-        }
-      } else {
-        // No tokens found, likely an invalid redirect or direct access
-        setMessage('Invalid authentication link or no tokens found.');
+      if (!token_hash || !type) {
+        console.error('AuthConfirm: Missing token_hash or type in URL.');
+        setMessage('Invalid authentication link. Please try again from the "Forgot Password" link.');
         showNotification('Invalid authentication link.', 'error');
-        navigate('/login');
+        setLoading(false);
+        navigate('/login', { state: { error: 'Invalid authentication link: Missing token or type.' } });
+        return;
       }
-      setLoading(false);
+
+      if (type !== 'recovery') {
+        console.warn('AuthConfirm: Unexpected authentication type:', type);
+        setMessage('Unsupported authentication type. Redirecting to dashboard.');
+        showNotification('Authentication successful!', 'success');
+        setLoading(false);
+        navigate('/dashboard'); // Or handle other types if needed
+        return;
+      }
+
+      try {
+        // Use verifyOtp for 'recovery' type
+        const { error } = await supabase.auth.verifyOtp({
+          type: 'recovery',
+          token_hash: token_hash,
+        });
+
+        if (error) {
+          console.error('AuthConfirm: Supabase verifyOtp error:', error);
+          setMessage('Failed to verify password reset link. Please try again.');
+          showNotification('Failed to verify password reset link: ' + error.message, 'error');
+          setLoading(false);
+          navigate('/login', { state: { error: 'Password reset verification failed.', details: error.message } });
+          return;
+        }
+
+        // If verification is successful, set the flag and redirect to update-password
+        sessionStorage.setItem('passwordResetRequested', 'true');
+        showNotification('Please set your new password.', 'info');
+        setLoading(false);
+        navigate('/update-password');
+
+      } catch (err: any) {
+        console.error('AuthConfirm: Unexpected error during verification:', err);
+        setMessage('An unexpected error occurred during verification. Please try again.');
+        showNotification('An unexpected error occurred: ' + err.message, 'error');
+        setLoading(false);
+        navigate('/login', { state: { error: 'An unexpected error occurred during verification.', details: err.message } });
+      }
     };
 
     handleAuthConfirmation();
-  }, [navigate, showNotification]);
+  }, [searchParams, navigate, showNotification]);
 
   return (
     <ChildFriendlyBackground>
