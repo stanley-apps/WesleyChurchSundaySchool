@@ -25,7 +25,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/auth-confirm" element={<AuthConfirm />} /> {/* New route for AuthConfirm */}
+          <Route path="/auth/confirm" element={<AuthConfirm />} /> {/* New route for AuthConfirm */}
           <Route
             path="/dashboard"
             element={
