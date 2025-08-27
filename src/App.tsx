@@ -17,7 +17,7 @@ import { MemoryVerseDetail } from './pages/MemoryVerseDetail'
 import { MemoryVerseEdit } from './pages/MemoryVerseEdit'
 import { StoriesList } from './pages/StoriesList'
 import { UpdatePassword } from './pages/UpdatePassword'
-import { AuthConfirm } from './pages/AuthConfirm' // New import
+import { AuthConfirm } from './pages/AuthConfirm'
 
 function App() {
   return (
@@ -25,7 +25,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/auth/confirm" element={<AuthConfirm />} /> {/* New route for AuthConfirm */}
+          <Route path="/auth/confirm" element={<AuthConfirm />} />
           <Route
             path="/dashboard"
             element={
@@ -60,7 +60,7 @@ function App() {
           <Route 
             path="/update-password" 
             element={
-              <ProtectedRoute> {/* Keep protected, as user should have a session by now */}
+              <ProtectedRoute>
                 <UpdatePassword />
               </ProtectedRoute>
             } 

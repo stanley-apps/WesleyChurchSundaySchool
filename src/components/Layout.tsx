@@ -1,18 +1,19 @@
-import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom' // Import useNavigate
+import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { ChildFriendlyBackground } from './ChildFriendlyBackground' // Import ChildFriendlyBackground
 
 export function Layout() {
   const { user, signOut } = useAuth()
   const location = useLocation()
-  const navigate = useNavigate() // Initialize useNavigate
+  const navigate = useNavigate()
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: '🏠' },
     { name: 'Songs', href: '/dashboard/songs', icon: '🎵' },
-    { name: 'Lessons', href: '/dashboard/lessons', icon: '📚', disabled: false }, // Enabled Lessons
+    { name: 'Lessons', href: '/dashboard/lessons', icon: '📚', disabled: false },
     { name: 'Games', href: '#', icon: '🎮', disabled: true },
     { name: 'Videos', href: '#', icon: '🎥', disabled: true },
   ]
@@ -35,10 +36,8 @@ export function Layout() {
     setShowLogoutConfirm(false)
   }
 
-  // Helper function to determine if a navigation item is active
   const isActiveRoute = (href: string) => {
     if (href === '/dashboard') {
-      // Dashboard is active only on exact match or when no other nav item matches
       return location.pathname === '/dashboard' || 
              (location.pathname.startsWith('/dashboard') && 
               !navigation.some(nav => nav.href !== '/dashboard' && nav.href !== '#' && location.pathname.startsWith(nav.href)))
@@ -169,7 +168,9 @@ export function Layout() {
         {/* Main content */}
         <div className="lg:pl-64 flex flex-col flex-1">
           <main className="flex-1">
-            <Outlet />
+            <ChildFriendlyBackground> {/* ChildFriendlyBackground now wraps only the Outlet content */}
+              <Outlet />
+            </ChildFriendlyBackground>
           </main>
         </div>
       </div>
@@ -197,10 +198,10 @@ export function Layout() {
             }
             
             return (
-              <button // Changed from Link to button
+              <button
                 key={item.name}
-                onClick={() => navigate(item.href)} // Programmatic navigation
-                className={`flex-1 flex flex-col items-center py-4 px-2 transition-colors min-h-[60px] cursor-pointer active:bg-blue-100 ${ // Added cursor-pointer and active state
+                onClick={() => navigate(item.href)}
+                className={`flex-1 flex flex-col items-center py-4 px-2 transition-colors min-h-[60px] cursor-pointer active:bg-blue-100 ${
                   isActive ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
