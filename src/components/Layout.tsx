@@ -199,7 +199,6 @@ export function Layout() {
               <Link
                 key={item.name}
                 to={item.href}
-                onClick={() => console.log(`Mobile nav clicked: ${item.href}`)}
                 className={`flex-1 flex flex-col items-center py-4 px-2 transition-colors min-h-[60px] touch-manipulation ${
                   isActive ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
