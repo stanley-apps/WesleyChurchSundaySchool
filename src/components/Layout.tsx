@@ -174,7 +174,7 @@ export function Layout() {
       </div>
 
       {/* Mobile bottom navigation */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
         <nav className="flex">
           {navigation.slice(0, 4).map((item) => {
             const isActive = isActiveRoute(item.href)
@@ -185,7 +185,7 @@ export function Layout() {
                 <button
                   key={item.name}
                   disabled
-                  className="flex-1 flex flex-col items-center py-4 px-2 text-gray-400 cursor-not-allowed min-h-[60px] touch-manipulation"
+                  className="flex-1 flex flex-col items-center py-4 px-2 text-gray-400 cursor-not-allowed min-h-[60px]"
                 >
                   <div className="w-8 h-8 flex items-center justify-center mb-1">
                     <span className="text-2xl leading-none">{item.icon}</span>
@@ -199,7 +199,7 @@ export function Layout() {
               <Link
                 key={item.name}
                 to={item.href}
-                className={`flex-1 flex flex-col items-center py-4 px-2 transition-colors min-h-[60px] touch-manipulation ${
+                className={`flex-1 flex flex-col items-center py-4 px-2 transition-colors min-h-[60px] ${
                   isActive ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
