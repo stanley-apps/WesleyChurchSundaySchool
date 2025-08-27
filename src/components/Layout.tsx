@@ -1,10 +1,11 @@
-import { Link, useLocation, Outlet } from 'react-router-dom'
+import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom' // Import useNavigate
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 
 export function Layout() {
   const { user, signOut } = useAuth()
   const location = useLocation()
+  const navigate = useNavigate() // Initialize useNavigate
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
@@ -196,10 +197,10 @@ export function Layout() {
             }
             
             return (
-              <Link
+              <button // Changed from Link to button
                 key={item.name}
-                to={item.href}
-                className={`flex-1 flex flex-col items-center py-4 px-2 transition-colors min-h-[60px] ${
+                onClick={() => navigate(item.href)} // Programmatic navigation
+                className={`flex-1 flex flex-col items-center py-4 px-2 transition-colors min-h-[60px] cursor-pointer active:bg-blue-100 ${ // Added cursor-pointer and active state
                   isActive ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
@@ -207,7 +208,7 @@ export function Layout() {
                   <span className="text-2xl leading-none">{item.icon}</span>
                 </div>
                 <span className="text-xs font-medium leading-tight">{item.name}</span>
-              </Link>
+              </button>
             )
           })}
         </nav>
