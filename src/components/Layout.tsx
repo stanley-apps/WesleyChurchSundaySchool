@@ -36,12 +36,9 @@ export function Layout() {
     setShowLogoutConfirm(false)
   }
 
+  // Simplified isActiveRoute: a route is active if its href is a prefix of the current path.
+  // This means if you're on /dashboard/songs/123, both 'Dashboard' and 'Songs' will be highlighted.
   const isActiveRoute = (href: string) => {
-    if (href === '/dashboard') {
-      return location.pathname === '/dashboard' || 
-             (location.pathname.startsWith('/dashboard') && 
-              !navigation.some(nav => nav.href !== '/dashboard' && nav.href !== '#' && location.pathname.startsWith(nav.href)))
-    }
     return location.pathname.startsWith(href) && href !== '#'
   }
 
@@ -200,7 +197,10 @@ export function Layout() {
             return (
               <button
                 key={item.name}
-                onClick={() => navigate(item.href)}
+                onClick={() => {
+                  console.log(`Mobile nav click: Navigating to ${item.href}`);
+                  navigate(item.href);
+                }}
                 className={`flex-1 flex flex-col items-center py-4 px-2 transition-colors min-h-[60px] cursor-pointer active:bg-blue-100 ${
                   isActive ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
