@@ -101,6 +101,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/auth-confirm`, // Changed redirect to AuthConfirm
     });
+    if (error) {
+      console.error('Supabase resetPasswordForEmail error:', error); // Added console log
+    }
     return { error };
   };
 
