@@ -1,45 +1,22 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth, useNotification } from '../contexts/AuthContext';
 import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground';
-import { QuizDisplay } from '../components/QuizDisplay'; // Import QuizDisplay
+// import { QuizDisplay } from '../components/QuizDisplay'; // No longer needed here
 
-interface QuizQuestion {
-  id: string;
-  emojis: string[];
-  choices: string[];
-  correctIndex: number;
-  bibleReference: string;
-  hint?: string;
-  explanation: string;
-}
-
-interface GeneratedQuiz {
-  id: string;
-  topic: string;
-  difficulty: string;
-  num_questions: number;
-  questions: QuizQuestion[];
-  created_at: string;
-  status: string;
-  ai_model_used?: string;
-  generation_metadata?: {
-    aiModel: string;
-    generationTime: number;
-    validationScore: number;
-  };
-}
+// The GeneratedQuiz interface is no longer directly used in this file.
+// It is used in QuizDetail.tsx and QuizDisplay.tsx.
 
 export function QuizGenerator() {
   const { user } = useAuth();
   const { showNotification } = useNotification();
+  const navigate = useNavigate();
   const [topic, setTopic] = useState('');
   const [difficulty, setDifficulty] = useState('easy');
   const [numQuestions, setNumQuestions] = useState(5);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [generatedQuiz, setGeneratedQuiz] = useState<GeneratedQuiz | null>(null);
 
   const difficulties = ['easy', 'medium', 'hard', 'extreme'];
   const questionCounts = [5, 10, 15, 20];
@@ -47,7 +24,6 @@ export function QuizGenerator() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setGeneratedQuiz(null);
 
     if (!user) {
       setError('You must be logged in to generate quizzes.');
@@ -76,8 +52,8 @@ export function QuizGenerator() {
         throw new Error(data.error);
       }
 
-      setGeneratedQuiz(data.quiz);
       showNotification('Quiz generated successfully! 🎉', 'success');
+      navigate(`/dashboard/quizzes/${data.quizId}`);
     } catch (err: any) {
       console.error('Error generating quiz:', err);
       setError(err.message || 'Failed to generate quiz. Please try again.');
@@ -198,12 +174,6 @@ export function QuizGenerator() {
               </button>
             </form>
           </div>
-
-          {generatedQuiz && (
-            <div className="mt-8">
-              <QuizDisplay quiz={generatedQuiz} />
-            </div>
-          )}
         </div>
       </div>
     </ChildFriendlyBackground>
