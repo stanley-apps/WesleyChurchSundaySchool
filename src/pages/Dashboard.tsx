@@ -9,6 +9,7 @@ export function Dashboard() {
   const [songCount, setSongCount] = useState(0)
   const [lessonCount, setLessonCount] = useState(0) // This now represents syllabus count
   const [memoryVerseCount, setMemoryVerseCount] = useState(0) // New state for memory verse count
+  const [quizCount, setQuizCount] = useState(0); // New state for quiz count
   const [loading, setLoading] = useState(true)
   const [displayName, setDisplayName] = useState('')
 
@@ -41,6 +42,13 @@ export function Dashboard() {
       if (mvError) throw mvError
       setMemoryVerseCount(mvC || 0)
 
+      // Fetch quiz count
+      const { count: qC, error: quizError } = await supabase
+        .from('quizzes')
+        .select('*', { count: 'exact', head: true })
+      if (quizError) throw quizError
+      setQuizCount(qC || 0)
+
       // Fetch display name
       if (user?.id) {
         const { data, error: profileError } = await supabase
@@ -58,6 +66,7 @@ export function Dashboard() {
       setSongCount(0)
       setLessonCount(0)
       setMemoryVerseCount(0)
+      setQuizCount(0)
     } finally {
       setLoading(false)
     }
@@ -87,9 +96,13 @@ export function Dashboard() {
     {
       icon: '🎮',
       title: 'Games',
-      description: 'Fun educational games',
-      href: '#',
-      available: false
+      description: loading 
+        ? 'Loading game counts...' 
+        : `Emoji Quizzes (${quizCount})`, // Updated description to use quiz count
+      href: '/dashboard/games/emoji-quiz', // Link to the new Quiz Generator
+      available: true, // Now available
+      count: quizCount,
+      countLabel: 'quizzes'
     },
     {
       icon: '🎥',

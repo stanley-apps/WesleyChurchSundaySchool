@@ -16,6 +16,7 @@ import { MemoryVerseUpload } from './pages/MemoryVerseUpload'
 import { MemoryVerseDetail } from './pages/MemoryVerseDetail'
 import { MemoryVerseEdit } from './pages/MemoryVerseEdit'
 import { StoriesList } from './pages/StoriesList'
+import { QuizGenerator } from './pages/QuizGenerator' // Import QuizGenerator
 import { UpdatePassword } from './pages/UpdatePassword'
 import { AuthConfirm } from './pages/AuthConfirm'
 
@@ -55,6 +56,9 @@ function App() {
 
             {/* Stories Section */}
             <Route path="stories" element={<StoriesList />} />
+
+            {/* Games Section - Emoji Quiz Generator */}
+            <Route path="games/emoji-quiz" element={<QuizGenerator />} />
           </Route>
           {/* UpdatePassword route should be protected, as the AuthConfirm handles the initial session setting */}
           <Route 

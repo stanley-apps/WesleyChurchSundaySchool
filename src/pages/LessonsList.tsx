@@ -24,6 +24,13 @@ export function LessonsList() {
       link: '/dashboard/stories',
       available: false,
     },
+    { // New section for Emoji Quiz Generator
+      title: 'Emoji Quiz Generator',
+      description: 'Create fun, AI-powered Bible emoji quizzes.',
+      icon: '🎮',
+      link: '/dashboard/games/emoji-quiz',
+      available: true,
+    },
   ]
 
   return (
