@@ -92,9 +92,10 @@ export function StoryDetail() {
         </iframe>
       )
     } else {
+      // For PPT/PPTX and other unsupported types, provide a download link
       return (
         <div className="text-center p-4 bg-gray-100 rounded-lg">
-          <p className="text-gray-700">Unsupported file type: {fileType}</p>
+          <p className="text-gray-700">This file type ({fileType}) cannot be displayed directly in the browser.</p>
           <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline mt-2 block">
             Download File
           </a>

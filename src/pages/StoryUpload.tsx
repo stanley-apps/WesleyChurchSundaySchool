@@ -16,13 +16,20 @@ export function StoryUpload() {
   const { showNotification } = useNotification()
 
   const classLevels = ['Beginners', 'Primary', 'Juniors', 'Inters', 'Seniors']
-  const allowedFileTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif']
+  const allowedFileTypes = [
+    'application/pdf', 
+    'image/jpeg', 
+    'image/png', 
+    'image/gif',
+    'application/vnd.ms-powerpoint', // .ppt
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation' // .pptx
+  ]
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
       if (!allowedFileTypes.includes(file.type)) {
-        setError('Only PDF, JPG, PNG, or GIF files are allowed.')
+        setError('Only PDF, JPG, PNG, GIF, PPT, or PPTX files are allowed.')
         setSelectedFile(null)
         return
       }
@@ -125,7 +132,7 @@ export function StoryUpload() {
             <div className="mb-6">
               <h1 className="text-3xl font-bold text-gray-900 mb-2 drop-shadow-sm">Upload New Story 📖</h1>
               <p className="text-gray-700 drop-shadow-sm">
-                Add a new Bible story document (PDF, JPG, PNG, GIF) to the collection.
+                Add a new Bible story document (PDF, JPG, PNG, GIF, PPT, PPTX) to the collection.
               </p>
             </div>
 
