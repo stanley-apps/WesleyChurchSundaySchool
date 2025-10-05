@@ -15,9 +15,12 @@ import { MemoryVersesList } from './pages/MemoryVersesList'
 import { MemoryVerseUpload } from './pages/MemoryVerseUpload'
 import { MemoryVerseDetail } from './pages/MemoryVerseDetail'
 import { MemoryVerseEdit } from './pages/MemoryVerseEdit'
-import { StoriesList } from './pages/StoriesList'
+import { StoriesList } from './pages/StoriesList' // Import StoriesList
+import { StoryUpload } from './pages/StoryUpload'   // Import StoryUpload
+import { StoryDetail } from './pages/StoryDetail'   // Import StoryDetail
+import { StoryEdit } from './pages/StoryEdit'     // Import StoryEdit
 import { QuizGenerator } from './pages/QuizGenerator'
-import { QuizDetail } from './pages/QuizDetail' // Import QuizDetail
+import { QuizDetail } from './pages/QuizDetail'
 import { UpdatePassword } from './pages/UpdatePassword'
 import { AuthConfirm } from './pages/AuthConfirm'
 
@@ -57,12 +60,14 @@ function App() {
 
             {/* Stories Section */}
             <Route path="stories" element={<StoriesList />} />
+            <Route path="stories/upload" element={<StoryUpload />} />
+            <Route path="stories/:id" element={<StoryDetail />} />
+            <Route path="stories/:id/edit" element={<StoryEdit />} />
 
             {/* Games Section - Emoji Quiz Generator */}
             <Route path="games/emoji-quiz" element={<QuizGenerator />} />
-            <Route path="quizzes/:id" element={<QuizDetail />} /> {/* New route for QuizDetail */}
+            <Route path="quizzes/:id" element={<QuizDetail />} />
           </Route>
-          {/* UpdatePassword route should be protected, as the AuthConfirm handles the initial session setting */}
           <Route 
             path="/update-password" 
             element={

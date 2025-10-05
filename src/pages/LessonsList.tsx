@@ -22,7 +22,7 @@ export function LessonsList() {
       description: 'Engaging Bible stories for children.',
       icon: '✨',
       link: '/dashboard/stories',
-      available: false,
+      available: true, // Changed to true
     },
     { // New section for Emoji Quiz Generator
       title: 'Emoji Quiz Generator',

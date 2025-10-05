@@ -35,3 +35,14 @@ export type MemoryVerse = {
   created_at: string
   hashtags: string[] | null // New: Add hashtags
 }
+
+export type Story = {
+  id: string
+  created_at: string
+  user_id: string
+  title: string
+  description: string | null
+  class_level: string | null
+  file_url: string
+  file_type: string
+}

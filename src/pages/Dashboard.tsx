@@ -8,8 +8,9 @@ export function Dashboard() {
   const { user, signOut } = useAuth()
   const [songCount, setSongCount] = useState(0)
   const [lessonCount, setLessonCount] = useState(0) // This now represents syllabus count
-  const [memoryVerseCount, setMemoryVerseCount] = useState(0) // New state for memory verse count
-  const [quizCount, setQuizCount] = useState(0); // New state for quiz count
+  const [memoryVerseCount, setMemoryVerseCount] = useState(0)
+  const [storyCount, setStoryCount] = useState(0) // New state for story count
+  const [quizCount, setQuizCount] = useState(0);
   const [loading, setLoading] = useState(true)
   const [displayName, setDisplayName] = useState('')
 
@@ -42,6 +43,13 @@ export function Dashboard() {
       if (mvError) throw mvError
       setMemoryVerseCount(mvC || 0)
 
+      // Fetch story count
+      const { count: storyC, error: storyError } = await supabase
+        .from('stories')
+        .select('*', { count: 'exact', head: true })
+      if (storyError) throw storyError
+      setStoryCount(storyC || 0)
+
       // Fetch quiz count
       const { count: qC, error: quizError } = await supabase
         .from('quizzes')
@@ -66,6 +74,7 @@ export function Dashboard() {
       setSongCount(0)
       setLessonCount(0)
       setMemoryVerseCount(0)
+      setStoryCount(0) // Reset story count on error
       setQuizCount(0)
     } finally {
       setLoading(false)
@@ -83,24 +92,22 @@ export function Dashboard() {
       countLabel: 'songs'
     },
     {
-      icon: '🎓', // Changed icon to represent the hub
-      title: 'Lessons Hub', // Changed title
+      icon: '🎓',
+      title: 'Lessons Hub',
       description: loading 
         ? 'Loading lesson counts...' 
-        : `Syllabuses (${lessonCount}), Memory Verses (${memoryVerseCount}), and Stories`, // Updated description to use counts
-      href: '/dashboard/lessons', // Link to the new hub page
+        : `Syllabuses (${lessonCount}), Memory Verses (${memoryVerseCount}), Stories (${storyCount})`, // Updated description to include story count
+      href: '/dashboard/lessons',
       available: true,
-      // No direct count here, as it's a hub for multiple types
-      // You could add a combined count if desired, e.g., count: lessonCount + memoryVerseCount
     },
     {
       icon: '🎮',
       title: 'Games',
       description: loading 
         ? 'Loading game counts...' 
-        : `Emoji Quizzes (${quizCount})`, // Updated description to use quiz count
-      href: '/dashboard/games/emoji-quiz', // Link to the new Quiz Generator
-      available: true, // Now available
+        : `Emoji Quizzes (${quizCount})`,
+      href: '/dashboard/games/emoji-quiz',
+      available: true,
       count: quizCount,
       countLabel: 'quizzes'
     },
@@ -130,9 +137,9 @@ export function Dashboard() {
           {/* Logout Button - Prominent placement */}
           <div className="mb-8 flex justify-end">
             <button
-              onClick={async () => { // Made onClick async
+              onClick={async () => {
                 if (window.confirm('Are you sure you want to sign out?')) {
-                  await signOut() // Await signOut
+                  await signOut()
                 }
               }}
               className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
