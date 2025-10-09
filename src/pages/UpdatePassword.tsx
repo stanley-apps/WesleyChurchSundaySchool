@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase'; // Correct import path
-// import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'; // Removed import
+import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground';
 import { useNotification } from '../contexts/AuthContext'; // Keep useNotification
 
 export function UpdatePassword() {
@@ -75,7 +75,7 @@ export function UpdatePassword() {
   }
 
   return (
-    // <ChildFriendlyBackground> Removed wrapper
+    <ChildFriendlyBackground>
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 border border-white/50 space-y-6">
           <div className="text-center">
@@ -148,6 +148,6 @@ export function UpdatePassword() {
           </form>
         </div>
       </div>
-    // </ChildFriendlyBackground> Removed wrapper
+    </ChildFriendlyBackground>
   );
 }

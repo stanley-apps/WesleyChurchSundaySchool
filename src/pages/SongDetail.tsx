@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import { supabase, Song } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-// import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground' // Removed import
+import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
 
 export function SongDetail() {
   const { id } = useParams<{ id: string }>()
@@ -159,7 +159,7 @@ export function SongDetail() {
 
   if (loading) {
     return (
-      // <ChildFriendlyBackground> Removed wrapper
+      <ChildFriendlyBackground>
         <div className="p-6 pb-20 lg:pb-6">
           <div className="max-w-3xl mx-auto">
             <div className="flex items-center justify-center py-12">
@@ -167,13 +167,13 @@ export function SongDetail() {
             </div>
           </div>
         </div>
-      // </ChildFriendlyBackground> Removed wrapper
+      </ChildFriendlyBackground>
     )
   }
 
   if (error || !song) {
     return (
-      // <ChildFriendlyBackground> Removed wrapper
+      <ChildFriendlyBackground>
         <div className="p-6 pb-20 lg:pb-6">
           <div className="max-w-3xl mx-auto">
             <div className="bg-red-50/90 backdrop-blur-sm border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
@@ -187,14 +187,14 @@ export function SongDetail() {
             </Link>
           </div>
         </div>
-      // </ChildFriendlyBackground> Removed wrapper
+      </ChildFriendlyBackground>
     )
   }
 
   const canEdit = !!user
 
   return (
-    // <ChildFriendlyBackground> Removed wrapper
+    <ChildFriendlyBackground>
       <div className="px-4 sm:px-8 py-6 pb-20 lg:pb-6">
         <div className="max-w-3xl mx-auto">
           {/* Controls and navigation outside the fullscreen element */}
@@ -353,6 +353,6 @@ export function SongDetail() {
           </div>
         </div>
       </div>
-    // </ChildFriendlyBackground> Removed wrapper
+    </ChildFriendlyBackground>
   )
 }

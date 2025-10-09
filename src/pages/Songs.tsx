@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import Fuse from 'fuse.js'
 import { supabase, Song } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-// import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground' // Removed import
+import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
 
 export function Songs() {
   const { /* user */ } = useAuth()
@@ -108,30 +108,34 @@ export function Songs() {
 
   if (loading) {
     return (
-      <div className="p-6 pb-20 lg:pb-6">
+      <ChildFriendlyBackground>
+        <div className="p-6 pb-20 lg:pb-6">
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
           </div>
         </div>
+      </ChildFriendlyBackground>
     )
   }
 
   if (error) {
     return (
-      <div className="p-6 pb-20 lg:pb-6">
+      <ChildFriendlyBackground>
+        <div className="p-6 pb-20 lg:pb-6">
           <div className="max-w-4xl mx-auto">
             <div className="bg-red-50/90 backdrop-blur-sm border border-red-200 text-red-700 px-4 py-3 rounded-lg">
               Error loading songs: {error}
             </div>
           </div>
         </div>
+      </ChildFriendlyBackground>
     )
   }
 
   return (
-    <> {/* Added React.Fragment to wrap sibling elements */}
+    <ChildFriendlyBackground>
       <div className="p-6 pb-20 lg:pb-6">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -291,6 +295,6 @@ export function Songs() {
           <span className="sr-only">Scroll to top</span>
         </button>
       )}
-    </>
+    </ChildFriendlyBackground>
   )
 }

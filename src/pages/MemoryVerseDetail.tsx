@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase, MemoryVerse } from '../lib/supabase'
-// import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground' // Removed import
+import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
 import { useAuth } from '../contexts/AuthContext' // Import useAuth
 
 export function MemoryVerseDetail() {
@@ -37,7 +37,7 @@ export function MemoryVerseDetail() {
 
   if (loading) {
     return (
-      // <ChildFriendlyBackground> Removed wrapper
+      <ChildFriendlyBackground>
         <div className="p-6 pb-20 lg:pb-6">
           <div className="max-w-3xl mx-auto">
             <div className="flex items-center justify-center py-12">
@@ -45,13 +45,13 @@ export function MemoryVerseDetail() {
             </div>
           </div>
         </div>
-      // </ChildFriendlyBackground> Removed wrapper
+      </ChildFriendlyBackground>
     )
   }
 
   if (error || !verse) {
     return (
-      // <ChildFriendlyBackground> Removed wrapper
+      <ChildFriendlyBackground>
         <div className="p-6 pb-20 lg:pb-6">
           <div className="max-w-3xl mx-auto">
             <div className="bg-red-50/90 backdrop-blur-sm border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
@@ -65,14 +65,14 @@ export function MemoryVerseDetail() {
             </Link>
           </div>
         </div>
-      // </ChildFriendlyBackground> Removed wrapper
+      </ChildFriendlyBackground>
     )
   }
 
   const canEdit = user;
 
   return (
-    // <ChildFriendlyBackground> Removed wrapper
+    <ChildFriendlyBackground>
       <div className="px-4 sm:px-8 py-6 pb-20 lg:pb-6">
         <div className="max-w-3xl mx-auto">
           <div className="mb-6 flex items-center justify-between">
@@ -151,6 +151,6 @@ export function MemoryVerseDetail() {
           </div>
         </div>
       </div>
-    // </ChildFriendlyBackground> Removed wrapper
+    </ChildFriendlyBackground>
   )
 }

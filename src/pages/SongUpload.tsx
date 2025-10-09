@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-// import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground' // Removed import
+import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
 
 export function SongUpload() {
   const [title, setTitle] = useState('')
@@ -51,7 +51,7 @@ export function SongUpload() {
   }
 
   return (
-    // <ChildFriendlyBackground> Removed wrapper
+    <ChildFriendlyBackground>
       <div className="p-6 pb-20 lg:pb-6">
         <div className="max-w-4xl mx-auto">
           <div className="mb-6 flex items-center justify-between">
@@ -155,6 +155,6 @@ export function SongUpload() {
           </div>
         </div>
       </div>
-    // </ChildFriendlyBackground> Removed wrapper
+    </ChildFriendlyBackground>
   )
 }

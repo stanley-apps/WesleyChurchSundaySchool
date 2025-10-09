@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-// import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground' // Removed import
+import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
 
 export function Dashboard() {
   const { user, signOut } = useAuth()
@@ -121,7 +121,7 @@ export function Dashboard() {
   ]
 
   return (
-    // <ChildFriendlyBackground> Removed wrapper
+    <ChildFriendlyBackground>
       <div className="p-6 pb-20 lg:pb-6">
         <div className="max-w-7xl mx-auto">
           {/* Welcome Section */}
@@ -177,6 +177,6 @@ export function Dashboard() {
           </div>
         </div>
       </div>
-    // </ChildFriendlyBackground> Removed wrapper
+    </ChildFriendlyBackground>
   )
 }

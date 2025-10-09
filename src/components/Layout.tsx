@@ -1,7 +1,7 @@
-import { Link, useLocation, Outlet, useNavigate } from 'react'
+import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-// import { ChildFriendlyBackground } from './ChildFriendlyBackground' // Removed import
+import { ChildFriendlyBackground } from './ChildFriendlyBackground' // Import ChildFriendlyBackground
 
 export function Layout() {
   const { user, signOut } = useAuth()
@@ -43,7 +43,7 @@ export function Layout() {
   }
 
   return (
-    <div className="min-h-screen"> {/* Removed bg-gray-50 to allow ChildFriendlyBackground to show */}
+    <div className="min-h-screen bg-gray-50">
       {/* Mobile header */}
       <div className="lg:hidden bg-white shadow-sm border-b">
         <div className="px-4 py-3 flex items-center justify-between">
@@ -160,11 +160,14 @@ export function Layout() {
               </div>
             </div>
           </div>
+        </div>
 
         {/* Main content */}
         <div className="lg:pl-64 flex flex-col flex-1">
           <main className="flex-1">
-            <Outlet />
+            <ChildFriendlyBackground> {/* ChildFriendlyBackground now wraps only the Outlet content */}
+              <Outlet />
+            </ChildFriendlyBackground>
           </main>
         </div>
       </div>

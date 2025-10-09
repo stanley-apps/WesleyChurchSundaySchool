@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-// import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground' // Removed import
+import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
 
 export function LessonsList() {
   const contentSections = [
@@ -34,7 +34,7 @@ export function LessonsList() {
   ]
 
   return (
-    // <ChildFriendlyBackground> Removed wrapper
+    <ChildFriendlyBackground>
       <div className="p-6 pb-20 lg:pb-6">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -84,6 +84,6 @@ export function LessonsList() {
           </div>
         </div>
       </div>
-    // </ChildFriendlyBackground> Removed wrapper
+    </ChildFriendlyBackground>
   )
 }

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import Fuse from 'fuse.js'
 import { supabase, MemoryVerse } from '../lib/supabase'
-// import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground' // Removed import
+import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
 import { useNotification, useAuth } from '../contexts/AuthContext'
 
 export function MemoryVersesList() {
@@ -115,7 +115,7 @@ export function MemoryVersesList() {
 
   if (loading) {
     return (
-      // <ChildFriendlyBackground> Removed wrapper
+      <ChildFriendlyBackground>
         <div className="p-6 pb-20 lg:pb-6">
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center justify-center py-12">
@@ -123,12 +123,12 @@ export function MemoryVersesList() {
             </div>
           </div>
         </div>
-      // </ChildFriendlyBackground> Removed wrapper
+      </ChildFriendlyBackground>
     )
   }
 
   return (
-    // <ChildFriendlyBackground> Removed wrapper
+    <ChildFriendlyBackground>
       <div className="p-6 pb-20 lg:pb-6">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -286,6 +286,6 @@ export function MemoryVersesList() {
           )}
         </div>
       </div>
-    // </ChildFriendlyBackground> Removed wrapper
+    </ChildFriendlyBackground>
   )
 }
