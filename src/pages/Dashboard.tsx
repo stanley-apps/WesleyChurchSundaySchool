@@ -10,7 +10,7 @@ export function Dashboard() {
   const [lessonCount, setLessonCount] = useState(0) // This now represents syllabus count
   const [memoryVerseCount, setMemoryVerseCount] = useState(0)
   const [storyCount, setStoryCount] = useState(0) // New state for story count
-  const [quizCount, setQuizCount] = useState(0);
+  // Removed quizCount as it's no longer displayed
   const [loading, setLoading] = useState(true)
   const [displayName, setDisplayName] = useState('')
 
@@ -50,13 +50,8 @@ export function Dashboard() {
       if (storyError) throw storyError
       setStoryCount(storyC || 0)
 
-      // Fetch quiz count
-      const { count: qC, error: quizError } = await supabase
-        .from('quizzes')
-        .select('*', { count: 'exact', head: true })
-      if (quizError) throw quizError
-      setQuizCount(qC || 0)
-
+      // Removed fetching quiz count as it's no longer displayed
+      
       // Fetch display name
       if (user?.id) {
         const { data, error: profileError } = await supabase
@@ -75,7 +70,7 @@ export function Dashboard() {
       setLessonCount(0)
       setMemoryVerseCount(0)
       setStoryCount(0) // Reset story count on error
-      setQuizCount(0)
+      // Removed resetting quiz count
     } finally {
       setLoading(false)
     }
@@ -96,18 +91,17 @@ export function Dashboard() {
       title: 'Lessons Hub',
       description: loading 
         ? 'Loading lesson counts...' 
-        : `Syllabuses (${lessonCount}), Memory Verses (${memoryVerseCount}), Stories (${storyCount})`, // Updated description to include story count
+        : `Syllabuses (${lessonCount}), Memory Verses (${memoryVerseCount}), Stories (${storyCount})`,
       href: '/dashboard/lessons',
       available: true,
     },
     {
       icon: '🎮',
       title: 'Games',
-      description: 'Fun and interactive learning activities', // Generic description
-      href: '#', // No direct link as it's disabled
+      description: 'Fun and interactive learning activities',
+      href: '#',
       available: false, // Mark as unavailable
-      count: quizCount,
-      countLabel: 'quizzes'
+      // Removed count and countLabel for disabled feature
     },
     {
       icon: '🎥',
@@ -165,7 +159,7 @@ export function Dashboard() {
                 {!feature.available && (
                   <span className="inline-block mt-2 px-2 py-1 text-xs bg-gray-300 text-gray-700 rounded">Coming Soon</span>
                 )}
-                {feature.countLabel && (
+                {feature.countLabel && feature.available && ( // Only show count if feature is available
                   <span className="block mt-4 text-blue-700 font-bold">
                     {loading ? 'Loading…' : `${feature.count} ${feature.countLabel}`}
                   </span>
