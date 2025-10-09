@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth, useNotification } from '../contexts/AuthContext';
-import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground';
+// import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'; // Removed import
 // import { QuizDisplay } from '../components/QuizDisplay'; // No longer needed here
 
 // The GeneratedQuiz interface is no longer directly used in this file.
@@ -64,7 +64,7 @@ export function QuizGenerator() {
   };
 
   return (
-    <ChildFriendlyBackground>
+    // <ChildFriendlyBackground> Removed wrapper
       <div className="p-6 pb-20 lg:pb-6">
         <div className="max-w-4xl mx-auto">
           <div className="mb-6 flex items-center justify-between">
@@ -176,6 +176,6 @@ export function QuizGenerator() {
           </div>
         </div>
       </div>
-    </ChildFriendlyBackground>
+    // </ChildFriendlyBackground> Removed wrapper
   );
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground';
+// import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'; // Removed import
 import { useNotification } from '../contexts/AuthContext';
 
 export function AuthConfirm() {
@@ -71,7 +71,7 @@ export function AuthConfirm() {
   }, [searchParams, navigate, showNotification]);
 
   return (
-    <ChildFriendlyBackground>
+    // <ChildFriendlyBackground> Removed wrapper
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 border border-white/50 text-center">
           {loading ? (
@@ -84,6 +84,6 @@ export function AuthConfirm() {
           )}
         </div>
       </div>
-    </ChildFriendlyBackground>
+    // </ChildFriendlyBackground> Removed wrapper
   );
 }

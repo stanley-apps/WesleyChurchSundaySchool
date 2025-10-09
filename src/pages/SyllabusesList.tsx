@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import Fuse from 'fuse.js'
 import { supabase, Lesson } from '../lib/supabase'
-import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
+// import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground' // Removed import
 import { useNotification, useAuth } from '../contexts/AuthContext'
 
 export function SyllabusesList() {
@@ -140,7 +140,7 @@ export function SyllabusesList() {
 
   if (loading) {
     return (
-      <ChildFriendlyBackground>
+      // <ChildFriendlyBackground> Removed wrapper
         <div className="p-6 pb-20 lg:pb-6">
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center justify-center py-12">
@@ -148,12 +148,12 @@ export function SyllabusesList() {
             </div>
           </div>
         </div>
-      </ChildFriendlyBackground>
+      // </ChildFriendlyBackground> Removed wrapper
     )
   }
 
   return (
-    <ChildFriendlyBackground>
+    // <ChildFriendlyBackground> Removed wrapper
       <div className="p-6 pb-20 lg:pb-6">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -327,6 +327,6 @@ export function SyllabusesList() {
           )}
         </div>
       </div>
-    </ChildFriendlyBackground>
+    // </ChildFriendlyBackground> Removed wrapper
   )
 }

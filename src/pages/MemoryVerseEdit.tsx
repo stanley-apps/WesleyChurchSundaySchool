@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link, useParams } from 'react-router-dom'
 import { supabase, MemoryVerse } from '../lib/supabase'
 import { useAuth, useNotification } from '../contexts/AuthContext'
-import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
+// import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground' // Removed import
 
 export function MemoryVerseEdit() {
   const { id } = useParams<{ id: string }>()
@@ -109,7 +109,7 @@ export function MemoryVerseEdit() {
 
   if (loading) {
     return (
-      <ChildFriendlyBackground>
+      // <ChildFriendlyBackground> Removed wrapper
         <div className="p-6 pb-20 lg:pb-6">
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center justify-center py-12">
@@ -117,13 +117,13 @@ export function MemoryVerseEdit() {
             </div>
           </div>
         </div>
-      </ChildFriendlyBackground>
+      // </ChildFriendlyBackground> Removed wrapper
     )
   }
 
   if (error && error !== 'You do not have permission to edit this memory verse.') {
     return (
-      <ChildFriendlyBackground>
+      // <ChildFriendlyBackground> Removed wrapper
         <div className="p-6 pb-20 lg:pb-6">
           <div className="max-w-4xl mx-auto">
             <div className="bg-red-50/90 backdrop-blur-sm border border-red-200 text-red-700 px-4 py-3 rounded-lg">
@@ -137,12 +137,12 @@ export function MemoryVerseEdit() {
             </Link>
           </div>
         </div>
-      </ChildFriendlyBackground>
+      // </ChildFriendlyBackground> Removed wrapper
     )
   }
 
   return (
-    <ChildFriendlyBackground>
+    // <ChildFriendlyBackground> Removed wrapper
       <div className="p-6 pb-20 lg:pb-6">
         <div className="max-w-4xl mx-auto">
           <div className="mb-6 flex items-center justify-between">
@@ -252,6 +252,6 @@ export function MemoryVerseEdit() {
           </div>
         </div>
       </div>
-    </ChildFriendlyBackground>
+    // </ChildFriendlyBackground> Removed wrapper
   )
 }

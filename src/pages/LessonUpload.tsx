@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
+// import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground' // Removed import
 import { useNotification } from '../contexts/AuthContext' // For notifications
 
 export function LessonUpload() {
@@ -99,7 +99,7 @@ export function LessonUpload() {
   }
 
   return (
-    <ChildFriendlyBackground>
+    // <ChildFriendlyBackground> Removed wrapper
       <div className="p-6 pb-20 lg:pb-6">
         <div className="max-w-4xl mx-auto">
           <div className="mb-6 flex items-center justify-between">
@@ -227,6 +227,6 @@ export function LessonUpload() {
           </div>
         </div>
       </div>
-    </ChildFriendlyBackground>
+    // </ChildFriendlyBackground> Removed wrapper
   )
 }

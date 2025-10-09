@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth, useNotification } from '../contexts/AuthContext'
-import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
+// import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground' // Removed import
 
 export function StoryUpload() {
   const [title, setTitle] = useState('')
@@ -107,7 +107,7 @@ export function StoryUpload() {
   }
 
   return (
-    <ChildFriendlyBackground>
+    // <ChildFriendlyBackground> Removed wrapper
       <div className="p-6 pb-20 lg:pb-6">
         <div className="max-w-4xl mx-auto">
           <div className="mb-6 flex items-center justify-between">
@@ -235,6 +235,6 @@ export function StoryUpload() {
           </div>
         </div>
       </div>
-    </ChildFriendlyBackground>
+    // </ChildFriendlyBackground> Removed wrapper
   )
 }

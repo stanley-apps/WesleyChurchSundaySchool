@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground';
+// import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'; // Removed import
 import { QuizDisplay } from '../components/QuizDisplay';
 import { useNotification } from '../contexts/AuthContext';
 
@@ -72,7 +72,7 @@ export function QuizDetail() {
 
   if (loading) {
     return (
-      <ChildFriendlyBackground>
+      // <ChildFriendlyBackground> Removed wrapper
         <div className="p-6 pb-20 lg:pb-6">
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center justify-center py-12">
@@ -80,13 +80,13 @@ export function QuizDetail() {
             </div>
           </div>
         </div>
-      </ChildFriendlyBackground>
+      // </ChildFriendlyBackground> Removed wrapper
     );
   }
 
   if (error || !quiz) {
     return (
-      <ChildFriendlyBackground>
+      // <ChildFriendlyBackground> Removed wrapper
         <div className="p-6 pb-20 lg:pb-6">
           <div className="max-w-4xl mx-auto">
             <div className="bg-red-50/90 backdrop-blur-sm border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
@@ -100,12 +100,12 @@ export function QuizDetail() {
             </Link>
           </div>
         </div>
-      </ChildFriendlyBackground>
+      // </ChildFriendlyBackground> Removed wrapper
     );
   }
 
   return (
-    <ChildFriendlyBackground>
+    // <ChildFriendlyBackground> Removed wrapper
       <div className="p-6 pb-20 lg:pb-6">
         <div className="max-w-4xl mx-auto">
           <div className="mb-6 flex items-center justify-between">
@@ -131,6 +131,6 @@ export function QuizDetail() {
           </div>
         </div>
       </div>
-    </ChildFriendlyBackground>
+    // </ChildFriendlyBackground> Removed wrapper
   );
 }

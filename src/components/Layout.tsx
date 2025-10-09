@@ -1,7 +1,7 @@
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { ChildFriendlyBackground } from './ChildFriendlyBackground' // Import ChildFriendlyBackground
+// import { ChildFriendlyBackground } from './ChildFriendlyBackground' // Removed import
 
 export function Layout() {
   const { user, signOut } = useAuth()
@@ -165,9 +165,8 @@ export function Layout() {
         {/* Main content */}
         <div className="lg:pl-64 flex flex-col flex-1">
           <main className="flex-1">
-            <ChildFriendlyBackground> {/* ChildFriendlyBackground now wraps only the Outlet content */}
-              <Outlet />
-            </ChildFriendlyBackground>
+            {/* ChildFriendlyBackground removed from here */}
+            <Outlet />
           </main>
         </div>
       </div>
