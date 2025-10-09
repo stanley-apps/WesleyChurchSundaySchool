@@ -64,7 +64,8 @@ function App() {
             <Route path="stories/:id" element={<StoryDetail />} />
             <Route path="stories/:id/edit" element={<StoryEdit />} />
 
-            {/* Games Section - Emoji Quiz Generator */}
+            {/* Games Section */}
+            <Route path="games" element={<Navigate to="emoji-quiz" replace />} /> {/* Redirect /dashboard/games to the quiz generator */}
             <Route path="games/emoji-quiz" element={<QuizGenerator />} />
             <Route path="quizzes/:id" element={<QuizDetail />} />
           </Route>

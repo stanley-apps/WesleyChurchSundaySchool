@@ -21,17 +21,42 @@ interface QuizQuestion {
   explanation: string;
 }
 
+// Function to fetch file content from Supabase Storage
+async function fetchFileContent(fileUrl: string, fileType: string): Promise<string> {
+  if (fileType === 'text/plain') {
+    const response = await fetch(fileUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch text file from ${fileUrl}: ${response.statusText}`);
+    }
+    return await response.text();
+  } else if (fileType === 'application/pdf' || fileType === 'application/vnd.openxmlformats-officedocument.presentationml.presentation') {
+    // For PDF and PPTX, we cannot directly parse content in Deno without complex libraries.
+    // Instead, we'll instruct the AI to try and read from the URL.
+    // This is a best-effort approach and may not always work depending on AI capabilities.
+    return `Content from URL: ${fileUrl}`;
+  }
+  return ''; // Fallback for unsupported types
+}
+
 // Function to call a generic AI API
-async function generateQuizWithAI(topic: string, difficulty: string, numQuestions: number): Promise<{ questions: QuizQuestion[], aiModel: string }> {
+async function generateQuizWithAI(topic: string, difficulty: string, numQuestions: number, fileContent: string | null, fileType: string | null): Promise<{ questions: QuizQuestion[], aiModel: string }> {
   if (!AI_API_KEY) {
     throw new Error("AI_API_KEY is not set in environment variables.");
   }
 
-  // Placeholder for a generic AI API endpoint.
-  // You would replace this with the actual endpoint of your chosen AI service (e.g., OpenAI, Google AI, etc.)
   const AI_API_ENDPOINT = "https://api.openai.com/v1/chat/completions"; // Example for OpenAI
 
-  const prompt = `Generate a Bible emoji quiz about "${topic}" with ${numQuestions} questions at a ${difficulty} difficulty level. Each question should have 2-5 emojis, 4 multiple-choice answers, the correct answer index (0-3), a Bible reference, an optional hint, and a brief explanation. Respond only with a JSON array of questions.
+  let contentPrompt = '';
+  if (fileContent) {
+    if (fileType === 'text/plain') {
+      contentPrompt = `Here is the document content to base the quiz on:\n\n\`\`\`\n${fileContent}\n\`\`\`\n\n`;
+    } else if (fileType === 'application/pdf' || fileType === 'application/vnd.openxmlformats-officedocument.presentationml.presentation') {
+      contentPrompt = `Please generate the quiz based on the content found at this URL: ${fileContent}. `;
+    }
+  }
+
+  const prompt = `Generate a Bible emoji quiz about "${topic}" with ${numQuestions} questions at a ${difficulty} difficulty level. ${contentPrompt}
+Each question should have 2-5 child-friendly emojis, 4 multiple-choice answers, the correct answer index (0-3), a Bible reference, an optional hint, and a brief explanation. Respond only with a JSON array of questions.
 
 Example format for one question:
 {
@@ -43,7 +68,7 @@ Example format for one question:
   "explanation": "A shepherd leaves 99 sheep to find one lost sheep."
 }
 
-Ensure the JSON is valid and contains exactly ${numQuestions} questions.`;
+Ensure the JSON is valid and contains exactly ${numQuestions} questions. Prioritize child-friendly and diverse emojis.`;
 
   try {
     const response = await fetch(AI_API_ENDPOINT, {
@@ -69,20 +94,17 @@ Ensure the JSON is valid and contains exactly ${numQuestions} questions.`;
 
     const data = await response.json();
     
-    // Assuming the AI returns an object with a 'choices' array, and the content is a JSON string
     const aiContent = data.choices?.[0]?.message?.content;
     if (!aiContent) {
       throw new Error("AI response did not contain expected content.");
     }
 
-    // Attempt to parse the content, which should be a JSON string of questions
     const parsedQuestions = JSON.parse(aiContent);
 
     if (!Array.isArray(parsedQuestions)) {
       throw new Error("AI response was not a JSON array of questions.");
     }
 
-    // Basic validation of each question structure
     const validatedQuestions: QuizQuestion[] = parsedQuestions.map((q: any, index: number) => {
       if (
         !Array.isArray(q.emojis) || q.emojis.length < 2 || q.emojis.length > 5 ||
@@ -142,11 +164,11 @@ serve(async (req: Request) => {
   )
 
   try {
-    const { topic, difficulty, numQuestions } = await req.json()
+    const { topic, difficulty, numQuestions, fileUrl, fileType } = await req.json()
 
-    if (!topic || !difficulty || !numQuestions) {
+    if (!topic && !fileUrl) {
       return new Response(
-        JSON.stringify({ error: 'Missing required parameters: topic, difficulty, numQuestions.' }),
+        JSON.stringify({ error: 'Missing required parameters: topic or fileUrl.' }),
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -166,8 +188,13 @@ serve(async (req: Request) => {
       )
     }
 
+    let fileContent: string | null = null;
+    if (fileUrl && fileType) {
+      fileContent = await fetchFileContent(fileUrl, fileType);
+    }
+
     // Generate quiz using AI
-    const { questions: generatedQuestions, aiModel } = await generateQuizWithAI(topic, difficulty, numQuestions);
+    const { questions: generatedQuestions, aiModel } = await generateQuizWithAI(topic, difficulty, numQuestions, fileContent, fileType);
 
     // Insert the generated quiz into the 'quizzes' table
     const { data: quiz, error: insertError } = await supabaseClient
@@ -183,7 +210,9 @@ serve(async (req: Request) => {
         generation_metadata: {
           aiModel: aiModel,
           generationTime: Date.now(), // Use actual generation time
-          validationScore: 1.0 // Assuming perfect validation after parsing
+          validationScore: 1.0, // Assuming perfect validation after parsing
+          sourceFileUrl: fileUrl, // Store the source file URL
+          sourceFileType: fileType // Store the source file type
         }
       })
       .select()

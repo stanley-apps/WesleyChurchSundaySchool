@@ -3,10 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth, useNotification } from '../contexts/AuthContext';
 import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground';
-// import { QuizDisplay } from '../components/QuizDisplay'; // No longer needed here
-
-// The GeneratedQuiz interface is no longer directly used in this file.
-// It is used in QuizDetail.tsx and QuizDisplay.tsx.
 
 export function QuizGenerator() {
   const { user } = useAuth();
@@ -15,11 +11,30 @@ export function QuizGenerator() {
   const [topic, setTopic] = useState('');
   const [difficulty, setDifficulty] = useState('easy');
   const [numQuestions, setNumQuestions] = useState(5);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const difficulties = ['easy', 'medium', 'hard', 'extreme'];
   const questionCounts = [5, 10, 15, 20];
+  const allowedFileTypes = [
+    'application/pdf', 
+    'text/plain', 
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation' // .pptx
+  ];
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (!allowedFileTypes.includes(file.type)) {
+        setError('Only PDF, TXT, or PPTX files are allowed.');
+        setSelectedFile(null);
+        return;
+      }
+      setSelectedFile(file);
+      setError('');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,17 +46,51 @@ export function QuizGenerator() {
       return;
     }
 
-    if (!topic.trim()) {
-      setError('Please enter a quiz topic.');
-      showNotification('Please enter a quiz topic.', 'error');
+    if (!topic.trim() && !selectedFile) {
+      setError('Please enter a quiz topic OR upload a file.');
+      showNotification('Please enter a quiz topic OR upload a file.', 'error');
       return;
     }
 
     setLoading(true);
 
+    let fileUrl: string | null = null;
+    let fileType: string | null = null;
+
     try {
+      if (selectedFile) {
+        const bucketName = 'quiz_source_files';
+        const fileExtension = selectedFile.name.split('.').pop();
+        const filePath = `${user.id}/${Date.now()}.${fileExtension}`;
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from(bucketName)
+          .upload(filePath, selectedFile, {
+            cacheControl: '3600',
+            upsert: false,
+          });
+
+        if (uploadError) throw uploadError;
+
+        const { data: publicUrlData } = supabase.storage
+          .from(bucketName)
+          .getPublicUrl(uploadData.path);
+        
+        if (!publicUrlData.publicUrl) {
+          throw new Error('Failed to get public URL for the uploaded file.');
+        }
+        fileUrl = publicUrlData.publicUrl;
+        fileType = selectedFile.type;
+      }
+
       const { data, error: edgeFunctionError } = await supabase.functions.invoke('quiz-generator', {
-        body: JSON.stringify({ topic: topic.trim(), difficulty, numQuestions }),
+        body: JSON.stringify({ 
+          topic: topic.trim(), 
+          difficulty, 
+          numQuestions,
+          fileUrl,
+          fileType
+        }),
       });
 
       if (edgeFunctionError) {
@@ -69,13 +118,13 @@ export function QuizGenerator() {
         <div className="max-w-4xl mx-auto">
           <div className="mb-6 flex items-center justify-between">
             <Link
-              to="/dashboard/lessons"
+              to="/dashboard/games"
               className="inline-flex items-center text-blue-600 hover:text-blue-800 drop-shadow-sm"
             >
               <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              Back to Lessons Hub
+              Back to Games
             </Link>
             <Link
               to="/dashboard"
@@ -91,7 +140,7 @@ export function QuizGenerator() {
                 AI Emoji Quiz Generator 🎮
               </h1>
               <p className="text-gray-700 text-center drop-shadow-sm">
-                Create engaging Bible emoji quizzes for your Sunday School class!
+                Create engaging Bible emoji quizzes from a topic or an uploaded document!
               </p>
             </div>
 
@@ -104,7 +153,7 @@ export function QuizGenerator() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label htmlFor="topic" className="block text-sm font-medium text-gray-700 mb-2">
-                  Quiz Topic *
+                  Quiz Topic (e.g., Noah's Ark, Parables of Jesus)
                 </label>
                 <input
                   type="text"
@@ -112,9 +161,33 @@ export function QuizGenerator() {
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
-                  placeholder="e.g., Noah's Ark, Parables of Jesus, Creation Story"
-                  required
+                  placeholder="Enter the quiz topic..."
                 />
+              </div>
+
+              <div className="relative flex py-5 items-center">
+                <div className="flex-grow border-t border-gray-300"></div>
+                <span className="flex-shrink mx-4 text-gray-500">OR</span>
+                <div className="flex-grow border-t border-gray-300"></div>
+              </div>
+
+              <div>
+                <label htmlFor="quizFile" className="block text-sm font-medium text-gray-700 mb-2">
+                  Upload Document (PDF, TXT, PPTX)
+                </label>
+                <input
+                  type="file"
+                  id="quizFile"
+                  accept={allowedFileTypes.join(',')}
+                  onChange={handleFileChange}
+                  className="w-full text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 file:cursor-pointer"
+                />
+                {selectedFile && (
+                  <p className="mt-2 text-sm text-gray-600">Selected file: {selectedFile.name}</p>
+                )}
+                <p className="mt-1 text-xs text-gray-500">
+                  Note: For PDF and PPTX files, the AI will attempt to read content from the provided URL. Direct parsing of these formats within the Edge Function is not supported in this version.
+                </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

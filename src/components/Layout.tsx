@@ -13,8 +13,16 @@ export function Layout() {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: '🏠' },
     { name: 'Songs', href: '/dashboard/songs', icon: '🎵' },
-    { name: 'Lessons', href: '/dashboard/lessons', icon: '📚', disabled: false },
-    { name: 'Games', href: '#', icon: '🎮', disabled: true },
+    { name: 'Lessons Hub', href: '/dashboard/lessons', icon: '📚', disabled: false },
+    { 
+      name: 'Games', 
+      href: '/dashboard/games', 
+      icon: '🎮', 
+      disabled: false,
+      subItems: [
+        { name: 'Emoji Quiz Generator', href: '/dashboard/games/emoji-quiz', icon: '🧠' },
+      ]
+    },
     { name: 'Videos', href: '#', icon: '🎥', disabled: true },
   ]
 
@@ -36,8 +44,6 @@ export function Layout() {
     setShowLogoutConfirm(false)
   }
 
-  // Simplified isActiveRoute: a route is active if its href is a prefix of the current path.
-  // This means if you're on /dashboard/songs/123, both 'Dashboard' and 'Songs' will be highlighted.
   const isActiveRoute = (href: string) => {
     return location.pathname.startsWith(href) && href !== '#'
   }
@@ -109,18 +115,40 @@ export function Layout() {
                   }
                   
                   return (
-                    <Link
-                      key={item.name}
-                      to={item.href}
-                      className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
-                        isActive
-                          ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
-                          : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                      }`}
-                    >
-                      <span className="mr-3 text-lg">{item.icon}</span>
-                      {item.name}
-                    </Link>
+                    <div key={item.name}>
+                      <Link
+                        to={item.href}
+                        className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
+                          isActive
+                            ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
+                            : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                        }`}
+                      >
+                        <span className="mr-3 text-lg">{item.icon}</span>
+                        {item.name}
+                      </Link>
+                      {item.subItems && isActive && (
+                        <div className="ml-6 mt-1 space-y-1">
+                          {item.subItems.map((subItem) => {
+                            const isSubItemActive = isActiveRoute(subItem.href);
+                            return (
+                              <Link
+                                key={subItem.name}
+                                to={subItem.href}
+                                className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
+                                  isSubItemActive
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
+                                }`}
+                              >
+                                <span className="mr-3 text-lg">{subItem.icon}</span>
+                                {subItem.name}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   )
                 })}
               </nav>

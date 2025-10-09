@@ -22,15 +22,9 @@ export function LessonsList() {
       description: 'Engaging Bible stories for children.',
       icon: '✨',
       link: '/dashboard/stories',
-      available: true, // Changed to true
-    },
-    { // New section for Emoji Quiz Generator
-      title: 'Emoji Quiz Generator',
-      description: 'Create fun, AI-powered Bible emoji quizzes.',
-      icon: '🎮',
-      link: '/dashboard/games/emoji-quiz',
       available: true,
     },
+    // Removed Emoji Quiz Generator from here as it's now under 'Games'
   ]
 
   return (

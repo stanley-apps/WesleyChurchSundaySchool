@@ -106,7 +106,7 @@ export function Dashboard() {
       description: loading 
         ? 'Loading game counts...' 
         : `Emoji Quizzes (${quizCount})`,
-      href: '/dashboard/games/emoji-quiz',
+      href: '/dashboard/games/emoji-quiz', // Link directly to the quiz generator
       available: true,
       count: quizCount,
       countLabel: 'quizzes'
