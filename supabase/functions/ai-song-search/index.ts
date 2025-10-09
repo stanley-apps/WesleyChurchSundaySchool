@@ -1,4 +1,4 @@
-import { corsHeaders } from '../_shared/cors.ts'
+import { corsHeaders } from 'shared/cors.ts' // Corrected shared import path
 
 let FIRECRAWL_API_KEY: string | undefined = undefined
 try {
@@ -137,5 +137,5 @@ Deno.serve(async (req: Request) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
-  }
+    }
 })
