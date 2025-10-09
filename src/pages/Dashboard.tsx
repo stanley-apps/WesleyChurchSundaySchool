@@ -103,11 +103,9 @@ export function Dashboard() {
     {
       icon: '🎮',
       title: 'Games',
-      description: loading 
-        ? 'Loading game counts...' 
-        : `Emoji Quizzes (${quizCount})`,
-      href: '/dashboard/games/emoji-quiz', // Link directly to the quiz generator
-      available: true,
+      description: 'Fun and interactive learning activities', // Generic description
+      href: '#', // No direct link as it's disabled
+      available: false, // Mark as unavailable
       count: quizCount,
       countLabel: 'quizzes'
     },

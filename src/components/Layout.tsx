@@ -1,7 +1,21 @@
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { ChildFriendlyBackground } from './ChildFriendlyBackground' // Import ChildFriendlyBackground
+import { ChildFriendlyBackground } from './ChildFriendlyBackground'
+
+interface SubItem {
+  name: string;
+  href: string;
+  icon: string;
+}
+
+interface NavigationItem {
+  name: string;
+  href: string;
+  icon: string;
+  disabled?: boolean;
+  subItems?: SubItem[]; // Make subItems optional
+}
 
 export function Layout() {
   const { user, signOut } = useAuth()
@@ -10,7 +24,7 @@ export function Layout() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
-  const navigation = [
+  const navigation: NavigationItem[] = [ // Apply the new type here
     { name: 'Dashboard', href: '/dashboard', icon: '🏠' },
     { name: 'Songs', href: '/dashboard/songs', icon: '🎵' },
     { name: 'Lessons Hub', href: '/dashboard/lessons', icon: '📚', disabled: false },
@@ -18,10 +32,8 @@ export function Layout() {
       name: 'Games', 
       href: '/dashboard/games', 
       icon: '🎮', 
-      disabled: false,
-      subItems: [
-        { name: 'Emoji Quiz Generator', href: '/dashboard/games/emoji-quiz', icon: '🧠' },
-      ]
+      disabled: true,
+      // subItems is now correctly omitted or can be an empty array
     },
     { name: 'Videos', href: '#', icon: '🎥', disabled: true },
   ]

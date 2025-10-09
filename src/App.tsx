@@ -19,7 +19,7 @@ import { StoriesList } from './pages/StoriesList' // Import StoriesList
 import { StoryUpload } from './pages/StoryUpload'   // Import StoryUpload
 import { StoryDetail } from './pages/StoryDetail'   // Import StoryDetail
 import { StoryEdit } from './pages/StoryEdit'     // Import StoryEdit
-import { QuizGenerator } from './pages/QuizGenerator'
+// import { QuizGenerator } from './pages/QuizGenerator' // Removed
 import { QuizDetail } from './pages/QuizDetail'
 import { UpdatePassword } from './pages/UpdatePassword'
 import { AuthConfirm } from './pages/AuthConfirm'
@@ -64,10 +64,10 @@ function App() {
             <Route path="stories/:id" element={<StoryDetail />} />
             <Route path="stories/:id/edit" element={<StoryEdit />} />
 
-            {/* Games Section */}
-            <Route path="games" element={<Navigate to="emoji-quiz" replace />} /> {/* Redirect /dashboard/games to the quiz generator */}
-            <Route path="games/emoji-quiz" element={<QuizGenerator />} />
-            <Route path="quizzes/:id" element={<QuizDetail />} />
+            {/* Games Section - Now disabled */}
+            {/* <Route path="games" element={<Navigate to="emoji-quiz" replace />} /> */}
+            {/* <Route path="games/emoji-quiz" element={<QuizGenerator />} /> */}
+            <Route path="quizzes/:id" element={<QuizDetail />} /> {/* Keep quiz detail route for existing quizzes */}
           </Route>
           <Route 
             path="/update-password" 
