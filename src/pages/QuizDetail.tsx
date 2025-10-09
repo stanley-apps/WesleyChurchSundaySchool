@@ -1,35 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { supabase, Quiz } from '../lib/supabase'; // Import Quiz type from supabase.ts
 import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground';
 import { QuizDisplay } from '../components/QuizDisplay';
 import { useNotification } from '../contexts/AuthContext';
-
-interface QuizQuestion {
-  id: string;
-  emojis: string[];
-  choices: string[];
-  correctIndex: number;
-  bibleReference: string;
-  hint?: string;
-  explanation: string;
-}
-
-interface Quiz {
-  id: string;
-  topic: string;
-  difficulty: string;
-  num_questions: number;
-  questions: QuizQuestion[];
-  created_at: string;
-  status: string;
-  ai_model_used?: string;
-  generation_metadata?: {
-    aiModel: string;
-    generationTime: number;
-    validationScore: number;
-  };
-}
 
 export function QuizDetail() {
   const { id } = useParams<{ id: string }>();

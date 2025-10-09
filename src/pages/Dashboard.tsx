@@ -10,7 +10,7 @@ export function Dashboard() {
   const [lessonCount, setLessonCount] = useState(0) // This now represents syllabus count
   const [memoryVerseCount, setMemoryVerseCount] = useState(0)
   const [storyCount, setStoryCount] = useState(0) // New state for story count
-  // Removed quizCount as it's no longer displayed
+  const [quizCount, setQuizCount] = useState(0); // Re-added quizCount
   const [loading, setLoading] = useState(true)
   const [displayName, setDisplayName] = useState('')
 
@@ -50,7 +50,12 @@ export function Dashboard() {
       if (storyError) throw storyError
       setStoryCount(storyC || 0)
 
-      // Removed fetching quiz count as it's no longer displayed
+      // Fetch quiz count
+      const { count: qC, error: quizError } = await supabase
+        .from('quizzes')
+        .select('*', { count: 'exact', head: true })
+      if (quizError) throw quizError
+      setQuizCount(qC || 0)
       
       // Fetch display name
       if (user?.id) {
@@ -69,8 +74,8 @@ export function Dashboard() {
       setSongCount(0)
       setLessonCount(0)
       setMemoryVerseCount(0)
-      setStoryCount(0) // Reset story count on error
-      // Removed resetting quiz count
+      setStoryCount(0)
+      setQuizCount(0)
     } finally {
       setLoading(false)
     }
@@ -99,9 +104,10 @@ export function Dashboard() {
       icon: '🎮',
       title: 'Games',
       description: 'Fun and interactive learning activities',
-      href: '#',
-      available: false, // Mark as unavailable
-      // Removed count and countLabel for disabled feature
+      href: '/dashboard/games/emoji-quiz', // Link to the quiz generator
+      available: true, // Re-enabled Games
+      count: quizCount, // Re-added quiz count
+      countLabel: 'quizzes'
     },
     {
       icon: '🎥',

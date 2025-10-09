@@ -46,3 +46,34 @@ export type Story = {
   file_url: string
   file_type: string
 }
+
+// New Quiz types
+export interface QuizQuestion {
+  id: string; // Unique ID for the question
+  question: string; // The question text
+  options: string[]; // Array of 4 multiple-choice options
+  answer_index: number; // Index of the correct answer in the options array (0-3)
+  explanation: string; // Short explanation for the answer
+  difficulty: 'easy' | 'medium' | 'hard' | 'extreme'; // Difficulty level
+  topic: string; // The topic of the question
+  source_reference?: string; // Optional reference to the source material (e.g., Bible verse, page number)
+}
+
+export interface Quiz {
+  id: string;
+  user_id: string;
+  topic: string;
+  difficulty: string;
+  num_questions: number;
+  questions: QuizQuestion[]; // Array of QuizQuestion objects
+  created_at: string;
+  status: string; // e.g., 'draft', 'published'
+  ai_model_used?: string;
+  generation_metadata?: {
+    aiModel: string;
+    generationTime: number;
+    validationScore: number;
+    sourceFileUrl?: string;
+    sourceFileType?: string;
+  };
+}

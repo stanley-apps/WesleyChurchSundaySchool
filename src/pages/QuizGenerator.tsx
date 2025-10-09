@@ -85,7 +85,7 @@ export function QuizGenerator() {
 
       const { data, error: edgeFunctionError } = await supabase.functions.invoke('quiz-generator', {
         body: JSON.stringify({ 
-          topic: topic.trim(), 
+          quizTopic: topic.trim(), // Changed to quizTopic
           difficulty, 
           numQuestions,
           fileUrl,
@@ -137,10 +137,10 @@ export function QuizGenerator() {
           <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 border border-white/50 mb-8">
             <div className="mb-6">
               <h1 className="text-3xl font-bold text-gray-900 mb-2 text-center drop-shadow-sm">
-                AI Emoji Quiz Generator 🎮
+                AI Quiz Generator 🎮
               </h1>
               <p className="text-gray-700 text-center drop-shadow-sm">
-                Create engaging Bible emoji quizzes from a topic or an uploaded document!
+                Create engaging Bible quizzes from a topic or an uploaded document!
               </p>
             </div>
 
@@ -242,7 +242,7 @@ export function QuizGenerator() {
                     Generating Quiz...
                   </>
                 ) : (
-                  '✨ Generate Emoji Quiz'
+                  '✨ Generate Quiz'
                 )}
               </button>
             </form>

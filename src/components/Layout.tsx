@@ -32,7 +32,7 @@ export function Layout() {
       name: 'Games', 
       href: '/dashboard/games', 
       icon: '🎮', 
-      disabled: true,
+      disabled: false, // Re-enabled Games
       // subItems is now correctly omitted or can be an empty array
     },
     { name: 'Videos', href: '#', icon: '🎥', disabled: true },

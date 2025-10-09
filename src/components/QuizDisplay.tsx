@@ -1,28 +1,4 @@
-interface QuizQuestion {
-  id: string;
-  emojis: string[];
-  choices: string[];
-  correctIndex: number;
-  bibleReference: string;
-  hint?: string;
-  explanation: string;
-}
-
-interface Quiz {
-  id: string;
-  topic: string;
-  difficulty: string;
-  num_questions: number;
-  questions: QuizQuestion[];
-  created_at: string;
-  status: string;
-  ai_model_used?: string;
-  generation_metadata?: {
-    aiModel: string;
-    generationTime: number;
-    validationScore: number;
-  };
-}
+import { Quiz } from '../lib/supabase'; // Import Quiz type from supabase.ts
 
 interface QuizDisplayProps {
   quiz: Quiz;
@@ -43,26 +19,25 @@ export function QuizDisplay({ quiz }: QuizDisplayProps) {
       {quiz.questions.map((question, qIndex) => (
         <div key={question.id || qIndex} className="bg-blue-50/80 backdrop-blur-sm rounded-xl shadow-md p-6 border border-blue-200">
           <p className="text-xl font-semibold text-gray-900 mb-4 text-center">
-            Question {qIndex + 1}: {question.emojis.join(' ')}
+            Question {qIndex + 1}: {question.question}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-            {question.choices.map((choice, cIndex) => (
+            {question.options.map((option, cIndex) => (
               <div
                 key={cIndex}
                 className={`p-3 rounded-lg border text-center ${
-                  cIndex === question.correctIndex
+                  cIndex === question.answer_index
                     ? 'bg-green-100 border-green-300 text-green-800 font-medium'
                     : 'bg-white border-gray-300 text-gray-800'
                 }`}
               >
-                {choice}
+                {option}
               </div>
             ))}
           </div>
           <div className="text-sm text-gray-700 mt-4 space-y-2">
-            <p><strong>Bible Reference:</strong> {question.bibleReference}</p>
+            {question.source_reference && <p><strong>Source Reference:</strong> {question.source_reference}</p>}
             <p><strong>Explanation:</strong> {question.explanation}</p>
-            {question.hint && <p><strong>Hint:</strong> {question.hint}</p>}
           </div>
         </div>
       ))}

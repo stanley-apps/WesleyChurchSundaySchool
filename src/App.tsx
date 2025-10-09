@@ -19,7 +19,7 @@ import { StoriesList } from './pages/StoriesList' // Import StoriesList
 import { StoryUpload } from './pages/StoryUpload'   // Import StoryUpload
 import { StoryDetail } from './pages/StoryDetail'   // Import StoryDetail
 import { StoryEdit } from './pages/StoryEdit'     // Import StoryEdit
-// import { QuizGenerator } from './pages/QuizGenerator' // Removed
+import { QuizGenerator } from './pages/QuizGenerator' // Uncommented
 import { QuizDetail } from './pages/QuizDetail'
 import { UpdatePassword } from './pages/UpdatePassword'
 import { AuthConfirm } from './pages/AuthConfirm'
@@ -64,9 +64,9 @@ function App() {
             <Route path="stories/:id" element={<StoryDetail />} />
             <Route path="stories/:id/edit" element={<StoryEdit />} />
 
-            {/* Games Section - Now disabled */}
-            {/* <Route path="games" element={<Navigate to="emoji-quiz" replace />} /> */}
-            {/* <Route path="games/emoji-quiz" element={<QuizGenerator />} /> */}
+            {/* Games Section */}
+            <Route path="games" element={<Navigate to="emoji-quiz" replace />} /> {/* Uncommented */}
+            <Route path="games/emoji-quiz" element={<QuizGenerator />} /> {/* Uncommented */}
             <Route path="quizzes/:id" element={<QuizDetail />} /> {/* Keep quiz detail route for existing quizzes */}
           </Route>
           <Route 

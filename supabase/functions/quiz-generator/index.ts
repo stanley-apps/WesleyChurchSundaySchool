@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
 // @ts-ignore
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 // @ts-ignore
-import { corsHeaders } from 'shared/cors.ts' // Corrected import path
+import { corsHeaders } from 'shared/cors.ts'
 
 // Get AI API Key from environment variables
 let AI_API_KEY: string | undefined = undefined
@@ -11,14 +11,16 @@ try {
   AI_API_KEY = Deno.env.get("AI_API_KEY")
 } catch (_) {}
 
-// Define the structure for a quiz question
+// Define the structure for a quiz question (updated)
 interface QuizQuestion {
-  emojis: string[];
-  choices: string[];
-  correctIndex: number;
-  bibleReference: string;
-  hint?: string;
+  id: string;
+  question: string;
+  options: string[];
+  answer_index: number;
   explanation: string;
+  difficulty: 'Easy' | 'Medium' | 'Hard' | 'Extremely Hard';
+  topic: string;
+  source_reference?: string;
 }
 
 // Function to fetch file content from Supabase Storage
@@ -39,36 +41,75 @@ async function fetchFileContent(fileUrl: string, fileType: string): Promise<stri
 }
 
 // Function to call a generic AI API
-async function generateQuizWithAI(topic: string, difficulty: string, numQuestions: number, fileContent: string | null, fileType: string | null): Promise<{ questions: QuizQuestion[], aiModel: string }> {
+async function generateQuizWithAI(quizTopic: string, difficulty: string, numQuestions: number, chunks: string | null): Promise<{ questions: QuizQuestion[], aiModel: string }> {
   if (!AI_API_KEY) {
     throw new Error("AI_API_KEY is not set in environment variables.");
   }
 
   const AI_API_ENDPOINT = "https://api.openai.com/v1/chat/completions"; // Example for OpenAI
 
-  let contentPrompt = '';
-  if (fileContent) {
-    if (fileType === 'text/plain') {
-      contentPrompt = `Here is the document content to base the quiz on:\n\n\`\`\`\n${fileContent}\n\`\`\`\n\n`;
-    } else if (fileType === 'application/pdf' || fileType === 'application/vnd.openxmlformats-officedocument.presentationml.presentation') {
-      contentPrompt = `Please generate the quiz based on the content found at this URL: ${fileContent}. `;
-    }
-  }
+  const systemPrompt = `You are a Bible-based quiz creator for Sunday School children under age 17.
+You create simple, wholesome, educational quizzes drawn directly from the provided content.
+The questions should promote curiosity, moral reflection, and biblical literacy.
 
-  const prompt = `Generate a Bible emoji quiz about "${topic}" with ${numQuestions} questions at a ${difficulty} difficulty level. ${contentPrompt}
-Each question should have 2-5 child-friendly emojis, 4 multiple-choice answers, the correct answer index (0-3), a Bible reference, an optional hint, and a brief explanation. Respond only with a JSON array of questions.
+SAFETY RULES:
+- Never include adult, violent, profane, or inappropriate topics.
+- Avoid any mention of sexual behavior, politics, or real-world conflicts.
+- Use child-safe vocabulary.
+- Stick to the Bible passages or Christian moral lessons provided.
+- Keep answers factual — don’t invent events or people not in the Bible.
 
-Example format for one question:
+OUTPUT FORMAT: JSON array of question objects.
+Each question object must look like this:
 {
-  "emojis": ["🐑", "👨‍🌾", "➡️", "🏠"],
-  "choices": ["The Lost Sheep", "The Prodigal Son", "The Good Samaritan", "The Sower"],
-  "correctIndex": 0,
-  "bibleReference": "Luke 15:3-7",
-  "hint": "One of a hundred.",
-  "explanation": "A shepherd leaves 99 sheep to find one lost sheep."
+  "id": "string",
+  "question": "string",
+  "options": ["optA","optB","optC","optD"],
+  "answer_index": 0,
+  "explanation": "short explanation in 1-2 sentences",
+  "difficulty": "Easy/Medium/Hard/Extremely Hard",
+  "topic": "string",
+  "source_reference": "file/slide/page info if any"
 }
 
-Ensure the JSON is valid and contains exactly ${numQuestions} questions. Prioritize child-friendly and diverse emojis.`;
+DIFFICULTY GUIDELINES:
+- Easy → direct recall; answer found word-for-word in source
+- Medium → requires understanding or reasoning
+- Hard → requires cross-linking concepts or comparing people/events
+- Extremely Hard → synthesis or symbolic interpretation`;
+
+  const userPrompt = `Create exactly ${numQuestions} Multiple-Choice Questions from the text below.
+
+Topic: ${quizTopic}
+Difficulty: ${difficulty}
+Source Text:
+
+${chunks || ''}
+
+Each question must:
+- Relate to the topic
+- Be child-friendly
+- Include 4 unique, plausible options
+- Highlight ONE correct answer index
+- Include a short explanation with Bible reference (Book, Chapter, Verse if found)
+- Stay under 30 words per question
+
+### FEW-SHOT EXAMPLES:
+Example 1:
+Question: Who built the ark?
+Options: ["Noah", "Abraham", "Solomon", "Moses"]
+Answer: 0
+Explanation: Noah built the ark to survive the flood (Genesis 6–9).
+Source Reference: Genesis 6-9
+
+Example 2:
+Question: Who interpreted King Nebuchadnezzar’s dream?
+Options: ["Daniel", "Joseph", "Elijah", "David"]
+Answer: 0
+Explanation: Daniel explained the king’s dream with God's help (Daniel 2).
+Source Reference: Daniel 2
+
+### Generate your quiz now as JSON only.`;
 
   try {
     const response = await fetch(AI_API_ENDPOINT, {
@@ -79,10 +120,13 @@ Ensure the JSON is valid and contains exactly ${numQuestions} questions. Priorit
       },
       body: JSON.stringify({
         model: "gpt-3.5-turbo", // Replace with your desired AI model
-        messages: [{ role: "user", content: prompt }],
-        response_format: { type: "json_object" }, // Request JSON object if supported
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        response_format: { type: "json_object" },
         temperature: 0.7,
-        max_tokens: 2000, // Adjust based on expected response size
+        max_tokens: 2000,
       }),
     });
 
@@ -99,30 +143,37 @@ Ensure the JSON is valid and contains exactly ${numQuestions} questions. Priorit
       throw new Error("AI response did not contain expected content.");
     }
 
-    const parsedQuestions = JSON.parse(aiContent);
+    const parsedResponse = JSON.parse(aiContent);
+    const parsedQuestions: QuizQuestion[] = parsedResponse.questions || parsedResponse; // Handle if AI wraps in 'questions' key
 
     if (!Array.isArray(parsedQuestions)) {
       throw new Error("AI response was not a JSON array of questions.");
     }
 
     const validatedQuestions: QuizQuestion[] = parsedQuestions.map((q: any, index: number) => {
+      // Generate a unique ID if not provided by AI
+      const questionId = q.id || `q${String(index + 1).padStart(3, '0')}`;
+
       if (
-        !Array.isArray(q.emojis) || q.emojis.length < 2 || q.emojis.length > 5 ||
-        !Array.isArray(q.choices) || q.choices.length !== 4 ||
-        typeof q.correctIndex !== 'number' || q.correctIndex < 0 || q.correctIndex > 3 ||
-        typeof q.bibleReference !== 'string' || q.bibleReference.trim() === '' ||
-        typeof q.explanation !== 'string' || q.explanation.trim() === ''
+        typeof q.question !== 'string' || q.question.trim() === '' ||
+        !Array.isArray(q.options) || q.options.length !== 4 ||
+        typeof q.answer_index !== 'number' || q.answer_index < 0 || q.answer_index > 3 ||
+        typeof q.explanation !== 'string' || q.explanation.trim() === '' ||
+        typeof q.difficulty !== 'string' || !['Easy', 'Medium', 'Hard', 'Extremely Hard'].includes(q.difficulty) ||
+        typeof q.topic !== 'string' || q.topic.trim() === ''
       ) {
         console.warn(`Invalid question structure at index ${index}:`, q);
         throw new Error(`AI generated an invalid question structure at index ${index}.`);
       }
       return {
-        emojis: q.emojis,
-        choices: q.choices,
-        correctIndex: q.correctIndex,
-        bibleReference: q.bibleReference,
-        hint: q.hint || undefined,
+        id: questionId,
+        question: q.question,
+        options: q.options,
+        answer_index: q.answer_index,
         explanation: q.explanation,
+        difficulty: q.difficulty,
+        topic: q.topic,
+        source_reference: q.source_reference || undefined,
       };
     });
 
@@ -164,11 +215,11 @@ serve(async (req: Request) => {
   )
 
   try {
-    const { topic, difficulty, numQuestions, fileUrl, fileType } = await req.json()
+    const { quizTopic, difficulty, numQuestions, fileUrl, fileType } = await req.json() // Changed topic to quizTopic
 
-    if (!topic && !fileUrl) {
+    if (!quizTopic && !fileUrl) {
       return new Response(
-        JSON.stringify({ error: 'Missing required parameters: topic or fileUrl.' }),
+        JSON.stringify({ error: 'Missing required parameters: quizTopic or fileUrl.' }),
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -188,20 +239,20 @@ serve(async (req: Request) => {
       )
     }
 
-    let fileContent: string | null = null;
+    let chunks: string | null = null; // Changed fileContent to chunks
     if (fileUrl && fileType) {
-      fileContent = await fetchFileContent(fileUrl, fileType);
+      chunks = await fetchFileContent(fileUrl, fileType);
     }
 
     // Generate quiz using AI
-    const { questions: generatedQuestions, aiModel } = await generateQuizWithAI(topic, difficulty, numQuestions, fileContent, fileType);
+    const { questions: generatedQuestions, aiModel } = await generateQuizWithAI(quizTopic, difficulty, numQuestions, chunks); // Changed topic to quizTopic, fileContent to chunks
 
     // Insert the generated quiz into the 'quizzes' table
     const { data: quiz, error: insertError } = await supabaseClient
       .from('quizzes')
       .insert({
         user_id: user.id,
-        topic,
+        topic: quizTopic, // Changed to quizTopic
         difficulty,
         num_questions: numQuestions,
         questions: generatedQuestions,
