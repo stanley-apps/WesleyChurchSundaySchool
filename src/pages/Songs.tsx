@@ -1,18 +1,36 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import Fuse from 'fuse.js'
-import { supabase, Song } from '../lib/supabase'
-import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
+import { useAuth, useNotification } from '../contexts/AuthContext'
 import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
 
+// Define the Song type (assuming it's already defined in supabase.ts, but good for local clarity)
+type Song = {
+  id: string
+  title: string
+  lyrics: string
+  user_id: string
+  created_at: string
+}
+
+// Removed 'declare global' block as types are now globally declared in vite-env.d.ts
+
 export function Songs() {
-  const { /* user */ } = useAuth()
+  // Removed 'user' from destructuring as it's not used in this component
+  const { } = useAuth() 
   const [songs, setSongs] = useState<Song[]>([])
   const [filteredSongs, setFilteredSongs] = useState<Song[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [showScrollToTop, setShowScrollToTop] = useState(false) // New state for scroll button
+  const [showScrollToTop, setShowScrollToTop] = useState(false)
+  
+  // Voice search states
+  const [isListening, setIsListening] = useState(false)
+  const [voiceSearchError, setVoiceSearchError] = useState<string | null>(null)
+  const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const { showNotification } = useNotification() // Use notification hook
 
   // Initialize Fuse.js with fuzzy search options
   const fuse = useMemo(() => {
@@ -51,6 +69,55 @@ export function Songs() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  // Initialize SpeechRecognition on component mount
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false; // Stop after one utterance
+      recognition.interimResults = false; // Only return final results
+      recognition.lang = 'en-US';
+
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        const transcript = event.results[0][0].transcript;
+        setSearchTerm(transcript);
+        setIsListening(false);
+        setVoiceSearchError(null);
+        showNotification('Voice search complete!', 'info');
+      };
+
+      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+        console.error('Speech recognition error:', event.error);
+        let errorMessage = 'Voice search failed.';
+        if (event.error === 'not-allowed' || event.error === 'permission-denied') {
+          errorMessage = 'Microphone access denied. Please enable it in your browser settings.';
+        } else if (event.error === 'no-speech') {
+          errorMessage = 'No speech detected. Please try again.';
+        } else if (event.error === 'network') {
+          errorMessage = 'Network error during speech recognition.';
+        }
+        setVoiceSearchError(errorMessage);
+        showNotification(errorMessage, 'error');
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+    } else {
+      setVoiceSearchError('Speech Recognition not supported in this browser.');
+      showNotification('Speech Recognition not supported in this browser.', 'error');
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, [showNotification]);
+
   const fetchSongs = async () => {
     try {
       const { data, error } = await supabase
@@ -64,6 +131,7 @@ export function Songs() {
       setFilteredSongs(data || [])
     } catch (err: any) {
       setError(err.message)
+      showNotification('Error loading songs: ' + err.message, 'error')
     } finally {
       setLoading(false)
     }
@@ -82,6 +150,23 @@ export function Songs() {
     const value = e.target.value
     setSearchTerm(value)
   }
+
+  const startVoiceSearch = () => {
+    if (recognitionRef.current && !isListening) {
+      setVoiceSearchError(null);
+      setIsListening(true);
+      recognitionRef.current.start();
+      showNotification('Listening for voice input...', 'info');
+    } else if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      showNotification('Voice input stopped.', 'info');
+    } else if (voiceSearchError === 'Speech Recognition not supported in this browser.') {
+      showNotification('Your browser does not support voice search.', 'error');
+    } else {
+      showNotification('Microphone not ready or already listening.', 'info');
+    }
+  };
 
   const truncateText = (text: string, maxLength: number = 150) => {
     if (text.length <= maxLength) return text
@@ -161,13 +246,13 @@ export function Songs() {
             </Link>
           </div>
 
-          {/* Regular Search */}
+          {/* Search Input with Voice Search Button */}
           <div className="mb-6">
-            <div className="relative">
+            <div className="relative flex items-center">
               <input
                 type="text"
                 placeholder="Search songs by title or lyrics... 🔍"
-                className="w-full px-3 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
+                className="w-full px-3 py-2 pl-10 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
                 value={searchTerm}
                 onChange={handleSearchChange}
               />
@@ -179,17 +264,33 @@ export function Songs() {
               {searchTerm && (
                 <button
                   onClick={() => setSearchTerm('')}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  className="absolute inset-y-0 right-10 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  title="Clear search"
                 >
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               )}
+              <button
+                onClick={startVoiceSearch}
+                className={`absolute inset-y-0 right-0 pr-3 flex items-center ${isListening ? 'text-red-500 animate-pulse-microphone' : 'text-gray-500 hover:text-blue-600'} transition-colors duration-200`}
+                title={isListening ? 'Stop voice search' : 'Start voice search'}
+                disabled={!!voiceSearchError && voiceSearchError !== 'No speech detected. Please try again.'} // Disable if unsupported or persistent error
+              >
+                <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3.53-2.64 6.4-6.3 6.4S5.7 14.53 5.7 11H4c0 3.98 3.44 7.19 7.8 7.94V22h3.2v-3.06c4.36-.75 7.8-3.96 7.8-7.94h-1.7z"/>
+                </svg>
+              </button>
             </div>
             {searchTerm && (
               <div className="mt-2 text-sm text-gray-600 bg-blue-50/80 backdrop-blur-sm p-2 rounded-lg">
                 💡 <strong>Smart Search:</strong> Try partial words, typos, or phrases - our fuzzy search will find matches!
+              </div>
+            )}
+            {voiceSearchError && (
+              <div className="mt-2 text-sm bg-red-50/80 backdrop-blur-sm border border-red-200 text-red-700 p-2 rounded-lg">
+                ⚠️ {voiceSearchError}
               </div>
             )}
           </div>
