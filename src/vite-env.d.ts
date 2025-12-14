@@ -75,3 +75,9 @@ interface Window {
     prototype: SpeechRecognition;
   };
 }
+
+// Extend ScreenOrientation interface to include lock and unlock methods
+interface ScreenOrientation {
+  lock(orientation: OrientationLockType): Promise<void>;
+  unlock(): void;
+}

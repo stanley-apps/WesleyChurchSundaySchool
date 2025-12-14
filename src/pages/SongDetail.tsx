@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import { supabase, Song } from '../lib/supabase'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth, useNotification } from '../contexts/AuthContext' // Import useNotification
 import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
 
 export function SongDetail() {
@@ -17,6 +17,7 @@ export function SongDetail() {
   const [saving, setSaving] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [fontSize, setFontSize] = useState(20); // Initial font size for lyrics, corresponds to text-xl
+  const { showNotification } = useNotification(); // Use notification hook
 
   const lyricsDisplayRef = useRef<HTMLDivElement>(null) // Ref for the lyrics container
 
@@ -29,7 +30,26 @@ export function SongDetail() {
   // Listen for fullscreen changes (e.g., if user presses ESC)
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement)
+      const newIsFullscreen = !!document.fullscreenElement;
+      setIsFullscreen(newIsFullscreen);
+
+      if (newIsFullscreen) {
+        // Attempt to lock orientation to landscape
+        if (screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock('landscape').catch((err: any) => { // Explicitly type err
+            console.warn('Failed to lock screen orientation:', err);
+            showNotification('Failed to lock screen to landscape. Your device or browser might not support it.', 'info');
+          });
+        } else {
+          console.warn('Screen Orientation API not supported or lock method not available.');
+          showNotification('Screen orientation lock is not supported in this browser.', 'info');
+        }
+      } else {
+        // Attempt to unlock orientation
+        if (screen.orientation && screen.orientation.unlock) {
+          screen.orientation.unlock();
+        }
+      }
     }
 
     document.addEventListener('fullscreenchange', handleFullscreenChange)
@@ -43,7 +63,7 @@ export function SongDetail() {
       document.removeEventListener('mozfullscreenchange', handleFullscreenChange)
       document.removeEventListener('MSFullscreenChange', handleFullscreenChange)
     }
-  }, [])
+  }, [showNotification]) // Add showNotification to dependency array
 
   const fetchSong = async (songId: string) => {
     try {
@@ -69,7 +89,7 @@ export function SongDetail() {
     if (user) {
       setIsEditing(true)
     } else {
-      alert('You must be logged in to edit songs')
+      showNotification('You must be logged in to edit songs', 'error')
     }
   }
 
@@ -88,9 +108,9 @@ export function SongDetail() {
 
       setSong({ ...song, lyrics: editedLyrics.trim(), title: editedTitle.trim() })
       setIsEditing(false)
-      alert('Lyrics updated successfully! ✅')
+      showNotification('Lyrics updated successfully! ✅', 'success')
     } catch (err: any) {
-      alert('Failed to update lyrics: ' + err.message)
+      showNotification('Failed to update lyrics: ' + err.message, 'error')
     } finally {
       setSaving(false)
     }
@@ -106,10 +126,10 @@ export function SongDetail() {
     if (song) {
       try {
         await navigator.clipboard.writeText(song.lyrics)
-        alert('Lyrics copied to clipboard! 📋')
+        showNotification('Lyrics copied to clipboard! 📋', 'success')
       } catch (err) {
         console.error('Failed to copy lyrics:', err)
-        alert('Failed to copy lyrics')
+        showNotification('Failed to copy lyrics', 'error')
       }
     }
   }
@@ -128,10 +148,10 @@ export function SongDetail() {
     } else {
       try {
         await navigator.clipboard.writeText(window.location.href)
-        alert('Song link copied to clipboard! 🔗')
+        showNotification('Song link copied to clipboard! 🔗', 'info')
       } catch (err) {
         console.error('Failed to copy URL:', err)
-        alert('Failed to share song')
+        showNotification('Failed to share song', 'error')
       }
     }
   }
@@ -139,9 +159,9 @@ export function SongDetail() {
   const toggleFullscreen = () => {
     if (lyricsDisplayRef.current) {
       if (!document.fullscreenElement) {
-        lyricsDisplayRef.current.requestFullscreen().catch(err => {
+        lyricsDisplayRef.current.requestFullscreen().catch((err: any) => { // Explicitly type err
           console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-          alert('Failed to enter fullscreen. Your browser might block it or it requires a user gesture.');
+          showNotification('Failed to enter fullscreen. Your browser might block it or it requires a user gesture.', 'error');
         });
       } else {
         document.exitFullscreen();
