@@ -91,11 +91,12 @@ export function Songs() {
         } else if (event.error === 'no-speech') {
           errorMessage = 'No speech detected. Please try again.';
         } else if (event.error === 'network') {
-          errorMessage = 'Network error during speech recognition. Please check your internet connection and try again. You might also try a different browser.';
+          errorMessage = 'Network error during speech recognition. Please check your internet connection, ensure microphone access is allowed in browser settings, and try again. You might also try a different browser.';
         }
         setVoiceSearchError(errorMessage);
         showNotification(errorMessage, 'error');
         setIsListening(false);
+        recognitionRef.current?.stop(); // Ensure recognition stops on error
       };
 
       recognition.onend = () => {
