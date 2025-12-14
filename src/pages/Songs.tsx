@@ -14,10 +14,7 @@ type Song = {
   created_at: string
 }
 
-// Removed 'declare global' block as types are now globally declared in vite-env.d.ts
-
 export function Songs() {
-  // Removed 'user' from destructuring as it's not used in this component
   const { } = useAuth() 
   const [songs, setSongs] = useState<Song[]>([])
   const [filteredSongs, setFilteredSongs] = useState<Song[]>([])
@@ -94,7 +91,7 @@ export function Songs() {
         } else if (event.error === 'no-speech') {
           errorMessage = 'No speech detected. Please try again.';
         } else if (event.error === 'network') {
-          errorMessage = 'Network error during speech recognition.';
+          errorMessage = 'Network error during speech recognition. Please check your internet connection and try again. You might also try a different browser.';
         }
         setVoiceSearchError(errorMessage);
         showNotification(errorMessage, 'error');
