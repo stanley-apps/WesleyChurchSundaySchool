@@ -26,6 +26,7 @@ export function Songs() {
   // Voice search states
   const [isListening, setIsListening] = useState(false)
   const [voiceSearchError, setVoiceSearchError] = useState<string | null>(null)
+  const [isSpeechRecognitionAvailable, setIsSpeechRecognitionAvailable] = useState(false) // New state
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const { showNotification } = useNotification() // Use notification hook
 
@@ -70,6 +71,7 @@ export function Songs() {
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
+      setIsSpeechRecognitionAvailable(true);
       const recognition = new SpeechRecognition();
       recognition.continuous = false; // Stop after one utterance
       recognition.interimResults = false; // Only return final results
@@ -79,7 +81,7 @@ export function Songs() {
         const transcript = event.results[0][0].transcript;
         setSearchTerm(transcript);
         setIsListening(false);
-        setVoiceSearchError(null);
+        setVoiceSearchError(null); // Clear any previous runtime error
         showNotification('Voice search complete!', 'info');
       };
 
@@ -93,7 +95,7 @@ export function Songs() {
         } else if (event.error === 'network') {
           errorMessage = 'Network error during speech recognition. Please check your internet connection, ensure microphone access is allowed in browser settings, and try again. You might also try a different browser.';
         }
-        setVoiceSearchError(errorMessage);
+        setVoiceSearchError(errorMessage); // Set runtime error
         showNotification(errorMessage, 'error');
         setIsListening(false);
         recognitionRef.current?.stop(); // Ensure recognition stops on error
@@ -105,8 +107,10 @@ export function Songs() {
 
       recognitionRef.current = recognition;
     } else {
-      setVoiceSearchError('Speech Recognition not supported in this browser.');
-      showNotification('Speech Recognition not supported in this browser.', 'error');
+      setIsSpeechRecognitionAvailable(false);
+      // No need to set voiceSearchError here, as the button won't render.
+      // The user will see a message if the button is not there.
+      showNotification('Speech Recognition is not supported in this browser. Voice search will not be available.', 'info');
     }
 
     return () => {
@@ -159,9 +163,8 @@ export function Songs() {
       recognitionRef.current?.stop();
       setIsListening(false);
       showNotification('Voice input stopped.', 'info');
-    } else if (voiceSearchError === 'Speech Recognition not supported in this browser.') {
-      showNotification('Your browser does not support voice search.', 'error');
     } else {
+      // This case should ideally not be reached if isSpeechRecognitionAvailable is false
       showNotification('Microphone not ready or already listening.', 'info');
     }
   };
@@ -270,25 +273,38 @@ export function Songs() {
                   </svg>
                 </button>
               )}
-              <button
-                onClick={startVoiceSearch}
-                className={`absolute inset-y-0 right-0 pr-3 flex items-center ${isListening ? 'text-red-500 animate-pulse-microphone' : 'text-gray-500 hover:text-blue-600'} transition-colors duration-200`}
-                title={isListening ? 'Stop voice search' : 'Start voice search'}
-                disabled={!!voiceSearchError && voiceSearchError !== 'No speech detected. Please try again.'} // Disable if unsupported or persistent error
-              >
-                <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3.53-2.64 6.4-6.3 6.4S5.7 14.53 5.7 11H4c0 3.98 3.44 7.19 7.8 7.94V22h3.2v-3.06c4.36-.75 7.8-3.96 7.8-7.94h-1.7z"/>
-                </svg>
-              </button>
+              {isSpeechRecognitionAvailable ? (
+                <button
+                  onClick={startVoiceSearch}
+                  className={`absolute inset-y-0 right-0 pr-3 flex items-center ${isListening ? 'text-red-500 animate-pulse-microphone' : 'text-gray-500 hover:text-blue-600'} transition-colors duration-200`}
+                  title={isListening ? 'Stop voice search' : 'Start voice search'}
+                  disabled={isListening} // Only disable if currently listening
+                >
+                  <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3.53-2.64 6.4-6.3 6.4S5.7 14.53 5.7 11H4c0 3.98 3.44 7.19 7.8 7.94V22h3.2v-3.06c4.36-.75 7.8-3.96 7.8-7.94h-1.7z"/>
+                  </svg>
+                </button>
+              ) : (
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 cursor-not-allowed" title="Voice search is not supported in this browser.">
+                  <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3.53-2.64 6.4-6.3 6.4S5.7 14.53 5.7 11H4c0 3.98 3.44 7.19 7.8 7.94V22h3.2v-3.06c4.36-.75 7.8-3.96 7.8-7.94h-1.7z"/>
+                  </svg>
+                </div>
+              )}
             </div>
             {searchTerm && (
               <div className="mt-2 text-sm text-gray-600 bg-blue-50/80 backdrop-blur-sm p-2 rounded-lg">
                 💡 <strong>Smart Search:</strong> Try partial words, typos, or phrases - our fuzzy search will find matches!
               </div>
             )}
-            {voiceSearchError && (
+            {voiceSearchError && ( // Only show runtime errors
               <div className="mt-2 text-sm bg-red-50/80 backdrop-blur-sm border border-red-200 text-red-700 p-2 rounded-lg">
                 ⚠️ {voiceSearchError}
+              </div>
+            )}
+            {!isSpeechRecognitionAvailable && ( // Show unsupported message if button is not rendered
+              <div className="mt-2 text-sm bg-blue-50/80 backdrop-blur-sm p-2 rounded-lg text-gray-600">
+                ℹ️ Voice search is not available in this browser. It typically works on Chrome for Android and desktop browsers, but not on iOS Safari or some other mobile browsers.
               </div>
             )}
           </div>
