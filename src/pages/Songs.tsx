@@ -1,47 +1,30 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import Fuse from 'fuse.js'
-import { supabase } from '../lib/supabase'
+import ReactMarkdown from 'react-markdown'
+import { motion, AnimatePresence } from 'framer-motion'
+import { supabase, Song } from '../lib/supabase'
 import { useAuth, useNotification } from '../contexts/AuthContext'
 import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
 
-// Define the Song type (assuming it's already defined in supabase.ts, but good for local clarity)
-type Song = {
-  id: string
-  title: string
-  lyrics: string
-  user_id: string
-  created_at: string
-}
+type ViewState = 'selection' | 'sunday_school' | 'vbs'
 
 export function Songs() {
-  const { } = useAuth() 
+  const [view, setView] = useState<ViewState>('selection')
   const [songs, setSongs] = useState<Song[]>([])
-  const [filteredSongs, setFilteredSongs] = useState<Song[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [showScrollToTop, setShowScrollToTop] = useState(false)
+  const [activeVbsDay, setActiveVbsDay] = useState(1)
+  const [fullscreenSong, setFullscreenSong] = useState<Song | null>(null)
+  const [fontSize, setFontSize] = useState(40)
   
-  // Voice search states
-  const [isListening, setIsListening] = useState(false)
-  const [voiceSearchError, setVoiceSearchError] = useState<string | null>(null)
-  const [isSpeechRecognitionAvailable, setIsSpeechRecognitionAvailable] = useState(false) // New state
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
-  const { showNotification } = useNotification() // Use notification hook
+  const fullscreenRef = useRef<HTMLDivElement>(null)
+  const { showNotification } = useNotification()
 
-  // Initialize Fuse.js with fuzzy search options
   const fuse = useMemo(() => {
     return new Fuse(songs, {
-      keys: [
-        { name: 'title', weight: 0.7 },
-        { name: 'lyrics', weight: 0.3 }
-      ],
-      includeScore: true,
-      threshold: 0.3, // Lower threshold = more strict matching
-      ignoreLocation: true,
-      findAllMatches: true,
-      minMatchCharLength: 2,
+      keys: ['title', 'lyrics'],
+      threshold: 0.3,
     })
   }, [songs])
 
@@ -49,172 +32,65 @@ export function Songs() {
     fetchSongs()
   }, [])
 
-  useEffect(() => {
-    handleSearch(searchTerm)
-  }, [searchTerm, songs, fuse])
-
-  // Effect to handle scroll event for "Back to Top" button
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 300) { // Show button after scrolling 300px down
-        setShowScrollToTop(true)
-      } else {
-        setShowScrollToTop(false)
-      }
-    }
-
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
-
-  // Initialize SpeechRecognition on component mount
-  useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      setIsSpeechRecognitionAvailable(true);
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false; // Stop after one utterance
-      recognition.interimResults = false; // Only return final results
-      recognition.lang = 'en-US';
-
-      recognition.onresult = (event: SpeechRecognitionEvent) => {
-        const transcript = event.results[0][0].transcript;
-        setSearchTerm(transcript);
-        setIsListening(false);
-        setVoiceSearchError(null); // Clear any previous runtime error
-        showNotification('Voice search complete!', 'info');
-      };
-
-      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-        console.error('Speech recognition error:', event.error);
-        let errorMessage = 'Voice search failed.';
-        if (event.error === 'not-allowed' || event.error === 'permission-denied') {
-          errorMessage = 'Microphone access denied. Please enable it in your browser settings.';
-        } else if (event.error === 'no-speech') {
-          errorMessage = 'No speech detected. Please try again.';
-        } else if (event.error === 'network') {
-          errorMessage = 'Network error during speech recognition. Please check your internet connection, ensure microphone access is allowed in browser settings, and try again. You might also try a different browser.';
-        }
-        setVoiceSearchError(errorMessage); // Set runtime error
-        showNotification(errorMessage, 'error');
-        setIsListening(false);
-        recognitionRef.current?.stop(); // Ensure recognition stops on error
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
-      recognitionRef.current = recognition;
-    } else {
-      setIsSpeechRecognitionAvailable(false);
-      // No need to set voiceSearchError here, as the button won't render.
-      // The user will see a message if the button is not there.
-      showNotification('Speech Recognition is not supported in this browser. Voice search will not be available.', 'info');
-    }
-
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-    };
-  }, [showNotification]);
-
   const fetchSongs = async () => {
     try {
       const { data, error } = await supabase
         .from('songs')
         .select('*')
-        .order('created_at', { ascending: false })
+        .order('title', { ascending: true })
 
       if (error) throw error
-      
       setSongs(data || [])
-      setFilteredSongs(data || [])
     } catch (err: any) {
-      setError(err.message)
       showNotification('Error loading songs: ' + err.message, 'error')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleSearch = (query: string) => {
-    if (query.trim() === '') {
-      setFilteredSongs(songs)
-      return
+  const filteredSongs = useMemo(() => {
+    let list = songs
+    if (view === 'sunday_school') {
+      list = songs.filter(s => s.category === 'sunday_school' || !s.category)
+    } else if (view === 'vbs') {
+      list = songs.filter(s => s.category === 'vbs' && s.vbs_day === activeVbsDay)
     }
-    const results = fuse.search(query).map((result) => result.item)
-    setFilteredSongs(results)
-  }
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    setSearchTerm(value)
-  }
-
-  const startVoiceSearch = () => {
-    if (recognitionRef.current && !isListening) {
-      setVoiceSearchError(null);
-      setIsListening(true);
-      recognitionRef.current.start();
-      showNotification('Listening for voice input...', 'info');
-    } else if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
-      showNotification('Voice input stopped.', 'info');
-    } else {
-      // This case should ideally not be reached if isSpeechRecognitionAvailable is false
-      showNotification('Microphone not ready or already listening.', 'info');
+    if (searchTerm.trim()) {
+      const searchResults = fuse.search(searchTerm).map(r => r.item)
+      return searchResults.filter(s => list.some(ls => ls.id === s.id))
     }
-  };
+    return list
+  }, [songs, view, activeVbsDay, searchTerm, fuse])
 
-  const truncateText = (text: string, maxLength: number = 150) => {
-    if (text.length <= maxLength) return text
-    return text.substring(0, maxLength) + '...'
+  const handleSongClick = (song: Song) => {
+    if (view === 'vbs') {
+      setFullscreenSong(song)
+      setTimeout(() => {
+        if (fullscreenRef.current) {
+          fullscreenRef.current.requestFullscreen().catch(err => {
+            console.error('Fullscreen error:', err)
+          })
+        }
+      }, 100)
+    }
   }
 
-  const highlightSearchTerm = (text: string, searchTerm: string) => {
-    if (!searchTerm.trim()) return text
-    const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
-    const parts = text.split(regex)
-    return parts.map((part, index) => 
-      regex.test(part) ? (
-        <mark key={index} className="bg-yellow-200 px-1 rounded">{part}</mark>
-      ) : part
-    )
-  }
-
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth' // Smooth scroll animation
-    })
-  }
+  useEffect(() => {
+    const handleFsChange = () => {
+      if (!document.fullscreenElement) {
+        setFullscreenSong(null)
+      }
+    }
+    document.addEventListener('fullscreenchange', handleFsChange)
+    return () => document.removeEventListener('fullscreenchange', handleFsChange)
+  }, [])
 
   if (loading) {
     return (
       <ChildFriendlyBackground>
-        <div className="p-6 pb-20 lg:pb-6">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            </div>
-          </div>
-        </div>
-      </ChildFriendlyBackground>
-    )
-  }
-
-  if (error) {
-    return (
-      <ChildFriendlyBackground>
-        <div className="p-6 pb-20 lg:pb-6">
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-red-50/90 backdrop-blur-sm border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-              Error loading songs: {error}
-            </div>
-          </div>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
       </ChildFriendlyBackground>
     )
@@ -222,194 +98,162 @@ export function Songs() {
 
   return (
     <ChildFriendlyBackground>
-      <div className="p-6 pb-20 lg:pb-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 drop-shadow-sm">Songs 🎵</h1>
-                <p className="mt-2 text-gray-700 drop-shadow-sm">
-                  Browse and search our collection of Sunday school songs
-                </p>
-              </div>
-              <Link
-                to="/dashboard"
-                className="ml-4 inline-flex items-center text-blue-600 hover:text-blue-800 drop-shadow-sm font-medium"
+      <div className="p-6 pb-20 lg:pb-6 max-w-6xl mx-auto">
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 drop-shadow-sm">
+              {view === 'selection' ? 'Songs Hub 🎵' : view === 'sunday_school' ? 'Sunday School Songs 🎵' : `VBS Day ${activeVbsDay} ☀️`}
+            </h1>
+            {view !== 'selection' && (
+              <button 
+                onClick={() => setView('selection')}
+                className="text-blue-600 hover:underline mt-1 flex items-center gap-1 font-medium"
               >
-                🏠 Dashboard
-              </Link>
-            </div>
-            <Link
-              to="/dashboard/songs/upload"
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-center whitespace-nowrap"
+                ⬅️ Back to Selection
+              </button>
+            )}
+          </div>
+          <Link
+            to="/dashboard/songs/upload"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors shadow-md"
+          >
+            ➕ Upload New Song
+          </Link>
+        </div>
+
+        <AnimatePresence mode="wait">
+          {view === 'selection' ? (
+            <motion.div 
+              key="selection"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12"
             >
-              ➕ Upload New Song
-            </Link>
-          </div>
+              <button
+                onClick={() => setView('sunday_school')}
+                className="group relative overflow-hidden rounded-3xl bg-white p-10 shadow-xl transition-all hover:scale-105 hover:shadow-2xl border-4 border-blue-200 text-left"
+              >
+                <div className="text-8xl mb-6 group-hover:animate-bounce">🎵</div>
+                <h2 className="text-4xl font-bold text-blue-800 mb-2">Sunday School</h2>
+                <p className="text-gray-600 text-lg">Browse our regular collection of worship songs</p>
+                <div className="absolute bottom-0 right-0 p-4 opacity-10 text-9xl">🎶</div>
+              </button>
 
-          {/* Search Input with Voice Search Button */}
-          <div className="mb-6">
-            <div className="relative flex items-center">
-              <input
-                type="text"
-                placeholder="Search songs by title or lyrics... 🔍"
-                className="w-full px-3 py-2 pl-10 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
-                value={searchTerm}
-                onChange={handleSearchChange}
-              />
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="absolute inset-y-0 right-10 pr-3 flex items-center text-gray-400 hover:text-gray-600"
-                  title="Clear search"
-                >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-              {isSpeechRecognitionAvailable ? (
-                <button
-                  onClick={startVoiceSearch}
-                  className={`absolute inset-y-0 right-0 pr-3 flex items-center ${isListening ? 'text-red-500 animate-pulse-microphone' : 'text-gray-500 hover:text-blue-600'} transition-colors duration-200`}
-                  title={isListening ? 'Stop voice search' : 'Start voice search'}
-                  disabled={isListening} // Only disable if currently listening
-                >
-                  <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3.53-2.64 6.4-6.3 6.4S5.7 14.53 5.7 11H4c0 3.98 3.44 7.19 7.8 7.94V22h3.2v-3.06c4.36-.75 7.8-3.96 7.8-7.94h-1.7z"/>
-                  </svg>
-                </button>
-              ) : (
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 cursor-not-allowed" title="Voice search is not supported in this browser.">
-                  <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3.53-2.64 6.4-6.3 6.4S5.7 14.53 5.7 11H4c0 3.98 3.44 7.19 7.8 7.94V22h3.2v-3.06c4.36-.75 7.8-3.96 7.8-7.94h-1.7z"/>
-                  </svg>
-                </div>
-              )}
-            </div>
-            {searchTerm && (
-              <div className="mt-2 text-sm text-gray-600 bg-blue-50/80 backdrop-blur-sm p-2 rounded-lg">
-                💡 <strong>Smart Search:</strong> Try partial words, typos, or phrases - our fuzzy search will find matches!
-              </div>
-            )}
-            {voiceSearchError && ( // Only show runtime errors
-              <div className="mt-2 text-sm bg-red-50/80 backdrop-blur-sm border border-red-200 text-red-700 p-2 rounded-lg">
-                ⚠️ {voiceSearchError}
-              </div>
-            )}
-            {!isSpeechRecognitionAvailable && ( // Show unsupported message if button is not rendered
-              <div className="mt-2 text-sm bg-blue-50/80 backdrop-blur-sm p-2 rounded-lg text-gray-600">
-                ℹ️ Voice search is not available in this browser. It typically works on Chrome for Android and desktop browsers, but not on iOS Safari or some other mobile browsers.
-              </div>
-            )}
-          </div>
-
-          {filteredSongs.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="text-gray-400 text-6xl mb-4">🎵</div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2 drop-shadow-sm">
-                {searchTerm ? 'No songs found' : 'No songs available'}
-              </h3>
-              <p className="text-gray-700 mb-4">
-                {searchTerm 
-                  ? (
-                      <>
-                        No matches for "<strong>{searchTerm}</strong>". 
-                        <br />
-                        Try different keywords or check for typos.
-                      </>
-                    )
-                  : 'Start building your song collection by uploading your first song!'
-                }
-              </p>
-              {!searchTerm && (
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Link
-                    to="/dashboard/songs/upload"
-                    className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
-                  >
-                    ➕ Upload First Song
-                  </Link>
-                </div>
-              )}
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="inline-block bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200"
-                >
-                  🔄 Clear Search
-                </button>
-              )}
-            </div>
+              <button
+                onClick={() => setView('vbs')}
+                className="group relative overflow-hidden rounded-3xl bg-white p-10 shadow-xl transition-all hover:scale-105 hover:shadow-2xl border-4 border-orange-200 text-left"
+              >
+                <div className="text-8xl mb-6 group-hover:animate-spin">☀️</div>
+                <h2 className="text-4xl font-bold text-orange-800 mb-2">VBS Summer Camp</h2>
+                <p className="text-gray-600 text-lg">Daily songs for our Vacation Bible School</p>
+                <div className="absolute bottom-0 right-0 p-4 opacity-10 text-9xl">🏖️</div>
+              </button>
+            </motion.div>
           ) : (
-            <div className="grid gap-4">
-              {filteredSongs.map((song) => (
-                <div
-                  key={song.id}
-                  className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-6 border border-white/50 hover:shadow-xl transition-all duration-300 hover:bg-white/95 hover:scale-[1.02]"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2 drop-shadow-sm">
-                        {searchTerm ? highlightSearchTerm(song.title, searchTerm) : song.title}
+            <motion.div
+              key="list"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="space-y-6"
+            >
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search songs... 🔍"
+                  className="w-full px-4 py-4 pl-14 rounded-2xl border-2 border-blue-100 focus:border-blue-400 focus:ring-0 bg-white/80 backdrop-blur-sm shadow-sm text-lg"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <span className="absolute left-5 top-1/2 -translate-y-1/2 text-3xl">🔍</span>
+              </div>
+
+              {view === 'vbs' && (
+                <div className="flex overflow-x-auto pb-4 gap-3 no-scrollbar">
+                  {[...Array(10)].map((_, i) => (
+                    <button
+                      key={i + 1}
+                      onClick={() => setActiveVbsDay(i + 1)}
+                      className={`px-8 py-3 rounded-full font-bold whitespace-nowrap transition-all text-lg ${
+                        activeVbsDay === i + 1 
+                          ? 'bg-orange-500 text-white shadow-lg scale-110' 
+                          : 'bg-white text-orange-600 hover:bg-orange-50 border-2 border-orange-100'
+                      }`}
+                    >
+                      Day {i + 1}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredSongs.map((song) => (
+                  <div
+                    key={song.id}
+                    onClick={() => handleSongClick(song)}
+                    className={`bg-white/90 backdrop-blur-sm p-8 rounded-3xl shadow-md border-2 transition-all cursor-pointer group hover:shadow-xl ${
+                      view === 'vbs' ? 'border-orange-100 hover:border-orange-400' : 'border-blue-100 hover:border-blue-400'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <h3 className="text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                        {song.title}
                       </h3>
-                      <p className="text-gray-700 text-sm mb-3 leading-relaxed">
-                        {searchTerm 
-                          ? highlightSearchTerm(truncateText(song.lyrics), searchTerm)
-                          : truncateText(song.lyrics)
-                        }
-                      </p>
-                      <div className="text-xs text-gray-500">
-                        Added {new Date(song.created_at).toLocaleDateString()}
-                      </div>
+                      {view === 'vbs' && <span className="text-3xl">🎬</span>}
                     </div>
-                    <div className="ml-4 flex flex-col gap-2">
-                      <Link
+                    <p className="text-gray-600 text-base line-clamp-3 italic leading-relaxed">
+                      {song.lyrics.replace(/[#*`>]/g, '').substring(0, 120)}...
+                    </p>
+                    <div className="mt-6 flex justify-end">
+                      <Link 
                         to={`/dashboard/songs/${song.id}`}
-                        className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-center whitespace-nowrap"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-sm font-bold text-blue-600 hover:underline bg-blue-50 px-4 py-2 rounded-full"
                       >
-                        👁️ View
+                        View Details ➡️
                       </Link>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
 
-          {searchTerm && filteredSongs.length > 0 && (
-            <div className="mt-6 text-center">
-              <div className="text-sm text-gray-700 drop-shadow-sm bg-white/80 backdrop-blur-sm p-3 rounded-lg inline-block">
-                🎯 Found <strong>{filteredSongs.length}</strong> of <strong>{songs.length}</strong> songs matching "<strong>{searchTerm}</strong>"
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="ml-3 text-blue-600 hover:text-blue-800 font-medium"
-                >
-                  Clear Search
-                </button>
+              {filteredSongs.length === 0 && (
+                <div className="text-center py-24 bg-white/50 rounded-3xl border-4 border-dashed border-gray-200">
+                  <div className="text-8xl mb-6">🏜️</div>
+                  <p className="text-2xl text-gray-500 font-medium">No songs found in this section.</p>
+                  <p className="text-gray-400 mt-2">Try a different search or category!</p>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div 
+          ref={fullscreenRef}
+          className={`fixed inset-0 z-[9999] bg-black text-white overflow-y-auto p-12 flex flex-col items-center ${fullscreenSong ? 'block' : 'hidden'}`}
+        >
+          {fullscreenSong && (
+            <div className="max-w-6xl w-full">
+              <div className="flex justify-between items-center mb-16 border-b border-white/20 pb-6">
+                <h2 className="text-5xl font-bold text-orange-400">{fullscreenSong.title}</h2>
+                <div className="flex gap-6">
+                  <button onClick={() => setFontSize(f => Math.max(20, f - 5))} className="bg-white/10 hover:bg-white/20 p-4 rounded-full text-3xl transition-colors">A-</button>
+                  <button onClick={() => setFontSize(f => Math.min(100, f + 5))} className="bg-white/10 hover:bg-white/20 p-4 rounded-full text-3xl transition-colors">A+</button>
+                  <button onClick={() => document.exitFullscreen()} className="bg-red-600 hover:bg-red-700 p-4 rounded-full text-3xl transition-colors">✕</button>
+                </div>
+              </div>
+              <div className="prose prose-invert max-w-none text-center" style={{ fontSize: `${fontSize}px` }}>
+                <ReactMarkdown className="font-serif leading-relaxed whitespace-pre-line">
+                  {fullscreenSong.lyrics}
+                </ReactMarkdown>
+              </div>
+              <div className="mt-32 text-center text-white/20 text-lg font-medium tracking-widest uppercase">
+                VBS Day {fullscreenSong.vbs_day} • Wesley Church Sunday School
               </div>
             </div>
           )}
         </div>
       </div>
-
-      {showScrollToTop && (
-        <button
-          onClick={scrollToTop}
-          className="fixed bottom-24 right-6 lg:bottom-6 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all duration-300 z-40 animate-bounce-once"
-          title="Scroll to top"
-        >
-          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-          </svg>
-          <span className="sr-only">Scroll to top</span>
-        </button>
-      )}
     </ChildFriendlyBackground>
   )
 }
