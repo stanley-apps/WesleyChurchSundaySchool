@@ -35,7 +35,7 @@ export type MemoryVerse = {
   verse_text: string
   reference: string
   created_at: string
-  hashtags: string[] | null // New: Add hashtags
+  hashtags: string[] | null
 }
 
 export type Story = {
@@ -49,16 +49,15 @@ export type Story = {
   file_type: string
 }
 
-// New Quiz types
 export interface QuizQuestion {
-  id: string; // Unique ID for the question
-  question: string; // The question text
-  options: string[]; // Array of 4 multiple-choice options
-  answer_index: number; // Index of the correct answer in the options array (0-3)
-  explanation: string; // Short explanation for the answer
-  difficulty: 'easy' | 'medium' | 'hard' | 'extreme'; // Difficulty level
-  topic: string; // The topic of the question
-  source_reference?: string; // Optional reference to the source material (e.g., Bible verse, page number)
+  id: string;
+  question: string;
+  options: string[];
+  answer_index: number;
+  explanation: string;
+  difficulty: 'easy' | 'medium' | 'hard' | 'extreme';
+  topic: string;
+  source_reference?: string;
 }
 
 export interface Quiz {
@@ -67,9 +66,9 @@ export interface Quiz {
   topic: string;
   difficulty: string;
   num_questions: number;
-  questions: QuizQuestion[]; // Array of QuizQuestion objects
+  questions: QuizQuestion[];
   created_at: string;
-  status: string; // e.g., 'draft', 'published'
+  status: string;
   ai_model_used?: string;
   generation_metadata?: {
     aiModel: string;
