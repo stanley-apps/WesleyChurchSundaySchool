@@ -35,16 +35,32 @@ export function Songs() {
   }, [])
 
   const fetchSongs = async () => {
+    setLoading(true)
     try {
-      const { data, error } = await supabase
+      console.log('Fetching songs...')
+      // Try fetching with display_order first
+      let { data, error } = await supabase
         .from('songs')
         .select('*')
         .order('display_order', { ascending: true })
         .order('title', { ascending: true })
 
-      if (error) throw error
+      // If it fails (likely because display_order column doesn't exist yet), fallback to title only
+      if (error) {
+        console.warn('Failed to fetch with display_order, falling back to title:', error.message)
+        const fallback = await supabase
+          .from('songs')
+          .select('*')
+          .order('title', { ascending: true })
+        
+        if (fallback.error) throw fallback.error
+        data = fallback.data
+      }
+
+      console.log(`Successfully fetched ${data?.length || 0} songs`)
       setSongs(data || [])
     } catch (err: any) {
+      console.error('Error loading songs:', err)
       showNotification('Error loading songs: ' + err.message, 'error')
     } finally {
       setLoading(false)
@@ -70,14 +86,6 @@ export function Songs() {
 
   const handleReorder = async (newOrder: Song[]) => {
     // Update local state immediately for smooth UI
-    const otherSongs = songs.filter(s => !currentViewSongs.some(cvs => cvs.id === s.id))
-    const updatedSongs = [...otherSongs, ...newOrder].sort((a, b) => {
-      // This is tricky because we need to maintain the global order
-      // For simplicity, we'll just update the display_order of the current view's songs
-      return 0 
-    })
-    
-    // We actually just want to update the 'songs' state with the new order for the current view
     const newSongsState = songs.map(s => {
       const indexInNewOrder = newOrder.findIndex(nos => nos.id === s.id)
       if (indexInNewOrder !== -1) {
@@ -91,20 +99,15 @@ export function Songs() {
     // Persist to database
     setIsSavingOrder(true)
     try {
-      const updates = newOrder.map((song, index) => ({
-        id: song.id,
-        display_order: index,
-        // We must include all required fields or use a specific update call
-        // Supabase update works by ID
-      }))
-
-      for (const update of updates) {
+      for (let i = 0; i < newOrder.length; i++) {
+        const song = newOrder[i]
         await supabase
           .from('songs')
-          .update({ display_order: update.display_order })
-          .eq('id', update.id)
+          .update({ display_order: i })
+          .eq('id', song.id)
       }
     } catch (err: any) {
+      console.error('Failed to save new order:', err)
       showNotification('Failed to save new order: ' + err.message, 'error')
     } finally {
       setIsSavingOrder(false)
