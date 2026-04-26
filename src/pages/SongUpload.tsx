@@ -7,6 +7,8 @@ import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
 export function SongUpload() {
   const [title, setTitle] = useState('')
   const [lyrics, setLyrics] = useState('')
+  const [category, setCategory] = useState<'sunday_school' | 'vbs'>('sunday_school')
+  const [vbsDay, setVbsDay] = useState<number>(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
@@ -35,13 +37,14 @@ export function SongUpload() {
           {
             title: title.trim(),
             lyrics: lyrics.trim(),
-            user_id: user.id
+            user_id: user.id,
+            category,
+            vbs_day: category === 'vbs' ? vbsDay : null
           }
         ])
 
       if (error) throw error
 
-      // Redirect to songs list on success
       navigate('/dashboard/songs')
     } catch (err: any) {
       setError(err.message)
@@ -76,7 +79,7 @@ export function SongUpload() {
             <div className="mb-6">
               <h1 className="text-3xl font-bold text-gray-900 mb-2 drop-shadow-sm">Upload New Song 🎵</h1>
               <p className="text-gray-700 drop-shadow-sm">
-                Add a new song to the Sunday School collection. You can use Markdown formatting in the lyrics.
+                Add a new song to the collection.
               </p>
             </div>
 
@@ -87,41 +90,69 @@ export function SongUpload() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                  Song Title *
-                </label>
-                <input
-                  type="text"
-                  id="title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
-                  placeholder="Enter the song title..."
-                  required
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                    Song Title *
+                  </label>
+                  <input
+                    type="text"
+                    id="title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
+                    placeholder="Enter the song title..."
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+                    Category
+                  </label>
+                  <select
+                    id="category"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value as 'sunday_school' | 'vbs')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
+                  >
+                    <option value="sunday_school">Sunday School</option>
+                    <option value="vbs">VBS Summer Camp</option>
+                  </select>
+                </div>
               </div>
+
+              {category === 'vbs' && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <label htmlFor="vbsDay" className="block text-sm font-medium text-gray-700 mb-2">
+                    VBS Day (1-10)
+                  </label>
+                  <input
+                    type="number"
+                    id="vbsDay"
+                    min="1"
+                    max="10"
+                    value={vbsDay}
+                    onChange={(e) => setVbsDay(parseInt(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
+                  />
+                </motion.div>
+              )}
 
               <div>
                 <label htmlFor="lyrics" className="block text-sm font-medium text-gray-700 mb-2">
                   Lyrics *
                 </label>
-                <div className="mb-2 text-sm text-gray-600 bg-blue-50/80 backdrop-blur-sm p-3 rounded-lg">
-                  <p className="font-medium mb-1">💡 Markdown Tips:</p>
-                  <ul className="text-xs space-y-1">
-                    <li>• Use **bold text** for emphasis</li>
-                    <li>• Use # Heading for verse titles</li>
-                    <li>• Use {'>'} for chorus indentation</li>
-                    <li>• Leave blank lines between verses</li>
-                  </ul>
-                </div>
                 <textarea
                   id="lyrics"
                   value={lyrics}
                   onChange={(e) => setLyrics(e.target.value)}
-                  rows={12}
+                  rows={10}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm resize-vertical"
-                  placeholder="Enter the song lyrics... You can use Markdown formatting!"
+                  placeholder="Enter the song lyrics..."
                   required
                 />
               </div>
@@ -132,17 +163,7 @@ export function SongUpload() {
                   disabled={loading}
                   className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 disabled:cursor-not-allowed"
                 >
-                  {loading ? (
-                    <span className="flex items-center justify-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Uploading...
-                    </span>
-                  ) : (
-                    '🎵 Upload Song'
-                  )}
+                  {loading ? 'Uploading...' : '🎵 Upload Song'}
                 </button>
                 <Link
                   to="/dashboard/songs"
