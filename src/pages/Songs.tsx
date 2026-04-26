@@ -13,12 +13,12 @@ type ViewState = 'selection' | 'sunday_school' | 'vbs'
 export function Songs() {
   const [view, setView] = useState<ViewState>('selection')
   const [songs, setSongs] = useState<Song[]>([])
+  const [displaySongs, setDisplaySongs] = useState<Song[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
   const [activeVbsDay, setActiveVbsDay] = useState(1)
   const [fullscreenSong, setFullscreenSong] = useState<Song | null>(null)
   const [fontSize, setFontSize] = useState(40)
-  const [isSavingOrder, setIsSavingOrder] = useState(false)
   
   const fullscreenRef = useRef<HTMLDivElement>(null)
   const { showNotification } = useNotification()
@@ -34,20 +34,35 @@ export function Songs() {
     fetchSongs()
   }, [])
 
+  // Sync displaySongs when view, activeVbsDay, or base songs change
+  useEffect(() => {
+    let filtered = songs
+    if (view === 'sunday_school') {
+      filtered = songs.filter(s => s.category === 'sunday_school' || !s.category)
+    } else if (view === 'vbs') {
+      filtered = songs.filter(s => s.category === 'vbs' && s.vbs_day === activeVbsDay)
+    } else {
+      filtered = []
+    }
+
+    if (searchTerm.trim()) {
+      const searchResults = fuse.search(searchTerm).map(r => r.item)
+      filtered = searchResults.filter(s => filtered.some(ls => ls.id === s.id))
+    }
+
+    setDisplaySongs(filtered)
+  }, [songs, view, activeVbsDay, searchTerm, fuse])
+
   const fetchSongs = async () => {
     setLoading(true)
     try {
-      console.log('Fetching songs...')
-      // Try fetching with display_order first
       let { data, error } = await supabase
         .from('songs')
         .select('*')
         .order('display_order', { ascending: true })
         .order('title', { ascending: true })
 
-      // If it fails (likely because display_order column doesn't exist yet), fallback to title only
       if (error) {
-        console.warn('Failed to fetch with display_order, falling back to title:', error.message)
         const fallback = await supabase
           .from('songs')
           .select('*')
@@ -57,48 +72,32 @@ export function Songs() {
         data = fallback.data
       }
 
-      console.log(`Successfully fetched ${data?.length || 0} songs`)
       setSongs(data || [])
     } catch (err: any) {
-      console.error('Error loading songs:', err)
       showNotification('Error loading songs: ' + err.message, 'error')
     } finally {
       setLoading(false)
     }
   }
 
-  const currentViewSongs = useMemo(() => {
-    if (view === 'sunday_school') {
-      return songs.filter(s => s.category === 'sunday_school' || !s.category)
-    } else if (view === 'vbs') {
-      return songs.filter(s => s.category === 'vbs' && s.vbs_day === activeVbsDay)
-    }
-    return []
-  }, [songs, view, activeVbsDay])
-
-  const filteredSongs = useMemo(() => {
-    if (searchTerm.trim()) {
-      const searchResults = fuse.search(searchTerm).map(r => r.item)
-      return searchResults.filter(s => currentViewSongs.some(ls => ls.id === s.id))
-    }
-    return currentViewSongs
-  }, [currentViewSongs, searchTerm, fuse])
-
   const handleReorder = async (newOrder: Song[]) => {
-    // Update local state immediately for smooth UI
-    const newSongsState = songs.map(s => {
+    // Update local display state immediately for the animation
+    setDisplaySongs(newOrder)
+    
+    // Update the main songs state to reflect the new order
+    const updatedSongs = songs.map(s => {
       const indexInNewOrder = newOrder.findIndex(nos => nos.id === s.id)
       if (indexInNewOrder !== -1) {
         return { ...s, display_order: indexInNewOrder }
       }
       return s
-    })
+    }).sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
     
-    setSongs(newSongsState)
+    setSongs(updatedSongs)
     
     // Persist to database
-    setIsSavingOrder(true)
     try {
+      // We only update the songs that were actually in the reordered list
       for (let i = 0; i < newOrder.length; i++) {
         const song = newOrder[i]
         await supabase
@@ -109,8 +108,6 @@ export function Songs() {
     } catch (err: any) {
       console.error('Failed to save new order:', err)
       showNotification('Failed to save new order: ' + err.message, 'error')
-    } finally {
-      setIsSavingOrder(false)
     }
   }
 
@@ -245,11 +242,11 @@ export function Songs() {
 
               <Reorder.Group 
                 axis="y" 
-                values={filteredSongs} 
+                values={displaySongs} 
                 onReorder={handleReorder}
                 className="space-y-3"
               >
-                {filteredSongs.map((song) => (
+                {displaySongs.map((song) => (
                   <Reorder.Item
                     key={song.id}
                     value={song}
@@ -288,7 +285,7 @@ export function Songs() {
                 ))}
               </Reorder.Group>
 
-              {filteredSongs.length === 0 && (
+              {displaySongs.length === 0 && (
                 <div className="text-center py-24 bg-white/50 rounded-3xl border-4 border-dashed border-gray-200">
                   <div className="text-8xl mb-6">🏜️</div>
                   <p className="text-2xl text-gray-500 font-medium">No songs found in this section.</p>
