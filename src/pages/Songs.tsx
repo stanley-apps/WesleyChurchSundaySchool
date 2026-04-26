@@ -145,7 +145,7 @@ export function Songs() {
                 className="group relative overflow-hidden rounded-3xl bg-white p-10 shadow-xl transition-all hover:scale-105 hover:shadow-2xl border-4 border-orange-200 text-left"
               >
                 <div className="text-8xl mb-6 group-hover:animate-spin">☀️</div>
-                <h2 className="text-4xl font-bold text-orange-800 mb-2">VBS Summer Camp</h2>
+                <h2 className="text-4xl font-bold text-orange-800 mb-2">VBS</h2>
                 <p className="text-gray-600 text-lg">Daily songs for our Vacation Bible School</p>
                 <div className="absolute bottom-0 right-0 p-4 opacity-10 text-9xl">🏖️</div>
               </button>
