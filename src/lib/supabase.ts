@@ -17,6 +17,7 @@ export type Song = {
   created_at: string
   category?: 'sunday_school' | 'vbs' | null
   vbs_day?: number | null
+  display_order: number
 }
 
 export type Lesson = {

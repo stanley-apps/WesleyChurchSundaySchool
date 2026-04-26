@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import Fuse from 'fuse.js'
 import ReactMarkdown from 'react-markdown'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, Reorder } from 'framer-motion'
+import { GripVertical, Eye } from 'lucide-react'
 import { supabase, Song } from '../lib/supabase'
 import { useNotification } from '../contexts/AuthContext'
 import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
@@ -17,6 +18,7 @@ export function Songs() {
   const [activeVbsDay, setActiveVbsDay] = useState(1)
   const [fullscreenSong, setFullscreenSong] = useState<Song | null>(null)
   const [fontSize, setFontSize] = useState(40)
+  const [isSavingOrder, setIsSavingOrder] = useState(false)
   
   const fullscreenRef = useRef<HTMLDivElement>(null)
   const { showNotification } = useNotification()
@@ -37,6 +39,7 @@ export function Songs() {
       const { data, error } = await supabase
         .from('songs')
         .select('*')
+        .order('display_order', { ascending: true })
         .order('title', { ascending: true })
 
       if (error) throw error
@@ -48,20 +51,65 @@ export function Songs() {
     }
   }
 
-  const filteredSongs = useMemo(() => {
-    let list = songs
+  const currentViewSongs = useMemo(() => {
     if (view === 'sunday_school') {
-      list = songs.filter(s => s.category === 'sunday_school' || !s.category)
+      return songs.filter(s => s.category === 'sunday_school' || !s.category)
     } else if (view === 'vbs') {
-      list = songs.filter(s => s.category === 'vbs' && s.vbs_day === activeVbsDay)
+      return songs.filter(s => s.category === 'vbs' && s.vbs_day === activeVbsDay)
     }
+    return []
+  }, [songs, view, activeVbsDay])
 
+  const filteredSongs = useMemo(() => {
     if (searchTerm.trim()) {
       const searchResults = fuse.search(searchTerm).map(r => r.item)
-      return searchResults.filter(s => list.some(ls => ls.id === s.id))
+      return searchResults.filter(s => currentViewSongs.some(ls => ls.id === s.id))
     }
-    return list
-  }, [songs, view, activeVbsDay, searchTerm, fuse])
+    return currentViewSongs
+  }, [currentViewSongs, searchTerm, fuse])
+
+  const handleReorder = async (newOrder: Song[]) => {
+    // Update local state immediately for smooth UI
+    const otherSongs = songs.filter(s => !currentViewSongs.some(cvs => cvs.id === s.id))
+    const updatedSongs = [...otherSongs, ...newOrder].sort((a, b) => {
+      // This is tricky because we need to maintain the global order
+      // For simplicity, we'll just update the display_order of the current view's songs
+      return 0 
+    })
+    
+    // We actually just want to update the 'songs' state with the new order for the current view
+    const newSongsState = songs.map(s => {
+      const indexInNewOrder = newOrder.findIndex(nos => nos.id === s.id)
+      if (indexInNewOrder !== -1) {
+        return { ...s, display_order: indexInNewOrder }
+      }
+      return s
+    })
+    
+    setSongs(newSongsState)
+    
+    // Persist to database
+    setIsSavingOrder(true)
+    try {
+      const updates = newOrder.map((song, index) => ({
+        id: song.id,
+        display_order: index,
+        // We must include all required fields or use a specific update call
+        // Supabase update works by ID
+      }))
+
+      for (const update of updates) {
+        await supabase
+          .from('songs')
+          .update({ display_order: update.display_order })
+          .eq('id', update.id)
+      }
+    } catch (err: any) {
+      showNotification('Failed to save new order: ' + err.message, 'error')
+    } finally {
+      setIsSavingOrder(false)
+    }
+  }
 
   const handleSongClick = (song: Song) => {
     if (view === 'vbs') {
@@ -98,7 +146,7 @@ export function Songs() {
 
   return (
     <ChildFriendlyBackground>
-      <div className="p-6 pb-20 lg:pb-6 max-w-6xl mx-auto">
+      <div className="p-6 pb-20 lg:pb-6 max-w-4xl mx-auto">
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 drop-shadow-sm">
@@ -186,36 +234,56 @@ export function Songs() {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {!searchTerm && (
+                <p className="text-sm text-gray-500 italic px-2">
+                  💡 Tip: Drag the handle on the left to reorder songs.
+                </p>
+              )}
+
+              <Reorder.Group 
+                axis="y" 
+                values={filteredSongs} 
+                onReorder={handleReorder}
+                className="space-y-3"
+              >
                 {filteredSongs.map((song) => (
-                  <div
+                  <Reorder.Item
                     key={song.id}
-                    onClick={() => handleSongClick(song)}
-                    className={`bg-white/90 backdrop-blur-sm p-8 rounded-3xl shadow-md border-2 transition-all cursor-pointer group hover:shadow-xl ${
-                      view === 'vbs' ? 'border-orange-100 hover:border-orange-400' : 'border-blue-100 hover:border-blue-400'
+                    value={song}
+                    dragListener={!searchTerm}
+                    className={`bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border-2 transition-all flex items-center p-4 group ${
+                      searchTerm ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'
+                    } ${
+                      view === 'vbs' ? 'border-orange-100 hover:border-orange-300' : 'border-blue-100 hover:border-blue-300'
                     }`}
                   >
-                    <div className="flex justify-between items-start mb-4">
-                      <h3 className="text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                    {!searchTerm && (
+                      <div className="mr-4 text-gray-400 group-hover:text-gray-600">
+                        <GripVertical size={24} />
+                      </div>
+                    )}
+                    
+                    <div 
+                      className="flex-1 min-w-0"
+                      onClick={() => handleSongClick(song)}
+                    >
+                      <h3 className="text-xl font-bold text-gray-900 truncate">
                         {song.title}
                       </h3>
-                      {view === 'vbs' && <span className="text-3xl">🎬</span>}
                     </div>
-                    <p className="text-gray-600 text-base line-clamp-3 italic leading-relaxed">
-                      {song.lyrics.replace(/[#*`>]/g, '').substring(0, 120)}...
-                    </p>
-                    <div className="mt-6 flex justify-end">
+
+                    <div className="flex items-center gap-2 ml-4">
                       <Link 
                         to={`/dashboard/songs/${song.id}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="text-sm font-bold text-blue-600 hover:underline bg-blue-50 px-4 py-2 rounded-full"
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                        title="View Details"
                       >
-                        View Details ➡️
+                        <Eye size={20} />
                       </Link>
                     </div>
-                  </div>
+                  </Reorder.Item>
                 ))}
-              </div>
+              </Reorder.Group>
 
               {filteredSongs.length === 0 && (
                 <div className="text-center py-24 bg-white/50 rounded-3xl border-4 border-dashed border-gray-200">
