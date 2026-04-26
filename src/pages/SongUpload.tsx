@@ -118,7 +118,7 @@ export function SongUpload() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
                   >
                     <option value="sunday_school">Sunday School</option>
-                    <option value="vbs">VBS Summer Camp</option>
+                    <option value="vbs">VBS</option>
                   </select>
                 </div>
               </div>
