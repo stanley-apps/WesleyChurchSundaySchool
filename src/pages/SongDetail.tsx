@@ -171,7 +171,7 @@ export function SongDetail() {
                         className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="sunday_school">Sunday School</option>
-                        <option value="vbs">VBS Summer Camp</option>
+                        <option value="vbs">VBS</option>
                       </select>
                       {editedCategory === 'vbs' && (
                         <input
