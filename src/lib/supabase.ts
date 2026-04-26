@@ -15,6 +15,8 @@ export type Song = {
   lyrics: string
   user_id: string
   created_at: string
+  category?: 'sunday_school' | 'vbs'
+  vbs_day?: number
 }
 
 export type Lesson = {

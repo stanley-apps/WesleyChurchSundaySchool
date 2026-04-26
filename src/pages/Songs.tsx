@@ -4,7 +4,7 @@ import Fuse from 'fuse.js'
 import ReactMarkdown from 'react-markdown'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase, Song } from '../lib/supabase'
-import { useAuth, useNotification } from '../contexts/AuthContext'
+import { useNotification } from '../contexts/AuthContext'
 import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
 
 type ViewState = 'selection' | 'sunday_school' | 'vbs'
