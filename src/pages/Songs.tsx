@@ -18,7 +18,9 @@ export function Songs() {
   const [loading, setLoading] = useState(true)
   const [activeVbsDay, setActiveVbsDay] = useState(1)
   const [fullscreenSong, setFullscreenSong] = useState<Song | null>(null)
-  const [fontSize, setFontSize] = useState(40)
+  
+  // Option 1: Use viewport-relative scale for fullscreen view
+  const [fontScale, setFontScale] = useState(5) // Default to 5vw
   
   const fullscreenRef = useRef<HTMLDivElement>(null)
   const { showNotification } = useNotification()
@@ -34,7 +36,6 @@ export function Songs() {
     fetchSongs()
   }, [])
 
-  // Sync displaySongs when view, activeVbsDay, or base songs change
   useEffect(() => {
     let filtered = songs
     if (view === 'sunday_school') {
@@ -81,10 +82,8 @@ export function Songs() {
   }
 
   const handleReorder = async (newOrder: Song[]) => {
-    // Update local display state immediately for the animation
     setDisplaySongs(newOrder)
     
-    // Update the main songs state to reflect the new order
     const updatedSongs = songs.map(s => {
       const indexInNewOrder = newOrder.findIndex(nos => nos.id === s.id)
       if (indexInNewOrder !== -1) {
@@ -95,9 +94,7 @@ export function Songs() {
     
     setSongs(updatedSongs)
     
-    // Persist to database
     try {
-      // We only update the songs that were actually in the reordered list
       for (let i = 0; i < newOrder.length; i++) {
         const song = newOrder[i]
         await supabase
@@ -305,13 +302,19 @@ export function Songs() {
               <div className="flex justify-between items-center mb-16 border-b border-white/20 pb-6">
                 <h2 className="text-5xl font-bold text-orange-400">{fullscreenSong.title}</h2>
                 <div className="flex gap-6">
-                  <button onClick={() => setFontSize(f => Math.max(20, f - 5))} className="bg-white/10 hover:bg-white/20 p-4 rounded-full text-3xl transition-colors">A-</button>
-                  <button onClick={() => setFontSize(f => Math.min(100, f + 5))} className="bg-white/10 hover:bg-white/20 p-4 rounded-full text-3xl transition-colors">A+</button>
-                  <button onClick={() => document.exitFullscreen()} className="bg-red-600 hover:bg-red-700 p-4 rounded-full text-3xl transition-colors">✕</button>
+                  <button onClick={() => setFontScale(f => Math.max(1, f - 0.5))} className="bg-white/10 hover:bg-white/20 p-4 rounded-full text-3xl transition-colors w-16 h-16 flex items-center justify-center">A-</button>
+                  <button onClick={() => setFontScale(f => Math.min(10, f + 0.5))} className="bg-white/10 hover:bg-white/20 p-4 rounded-full text-3xl transition-colors w-16 h-16 flex items-center justify-center">A+</button>
+                  <button onClick={() => document.exitFullscreen()} className="bg-red-600 hover:bg-red-700 p-4 rounded-full text-3xl transition-colors w-16 h-16 flex items-center justify-center">✕</button>
                 </div>
               </div>
-              <div className="prose prose-invert max-w-none text-center" style={{ fontSize: `${fontSize}px` }}>
-                <ReactMarkdown className="font-serif leading-relaxed whitespace-pre-line">
+              <div 
+                className="prose prose-invert max-w-none text-center" 
+                style={{ 
+                  fontSize: `${fontScale}vw`,
+                  lineHeight: '1.6'
+                }}
+              >
+                <ReactMarkdown className="font-serif whitespace-pre-line">
                   {fullscreenSong.lyrics}
                 </ReactMarkdown>
               </div>

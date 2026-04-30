@@ -3,8 +3,13 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    /* Option 1: Responsive base font size using clamp */
+    font-size: clamp(14px, 1.2vw, 18px);
+  }
   body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    @apply text-gray-900 antialiased;
   }
 }
 
@@ -107,22 +112,22 @@
     left: 0 !important;
     width: 100vw !important;
     height: 100vh !important;
-    z-index: 9999 !important; /* Ensure it's on top */
-    background-color: black !important; /* Black background */
-    color: white !important; /* White text color */
+    z-index: 9999 !important;
+    background-color: black !important;
+    color: white !important;
     display: flex !important;
     flex-direction: column !important;
-    align-items: center !important; /* Keep for horizontal centering of prose block */
-    padding: 4rem !important; /* Increased padding for better spacing */
+    align-items: center !important;
+    padding: 5vh 5vw !important; /* Use viewport units for padding */
     border-radius: 0 !important;
     box-shadow: none !important;
-    overflow-y: auto !important; /* Allow scrolling if lyrics are long */
+    overflow-y: auto !important;
   }
 
   .fullscreen-active .prose {
-    max-width: 800px !important; /* Limit width for readability */
-    margin: auto !important; /* Center the content */
-    color: inherit !important; /* Inherit text color from parent */
+    max-width: 90vw !important; /* Allow more width in fullscreen */
+    margin: auto !important;
+    color: inherit !important;
   }
 
   .fullscreen-active .prose p,
@@ -130,23 +135,17 @@
   .fullscreen-active .prose h2,
   .fullscreen-active .prose h3,
   .fullscreen-active .prose blockquote {
-    color: inherit !important; /* Ensure all text elements inherit color */
+    color: inherit !important;
+    /* Option 1: Base responsive font size for lyrics */
+    font-size: inherit; 
+    line-height: 1.4;
   }
 
   /* Microphone pulse animation */
   @keyframes pulse-microphone {
-    0% {
-      transform: scale(1);
-      opacity: 1;
-    }
-    50% {
-      transform: scale(1.1);
-      opacity: 0.7;
-    }
-    100% {
-      transform: scale(1);
-      opacity: 1;
-    }
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
   }
 
   .animate-pulse-microphone {

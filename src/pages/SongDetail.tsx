@@ -18,9 +18,11 @@ export function SongDetail() {
   const [editedVbsDay, setEditedVbsDay] = useState<number>(1)
   const [saving, setSaving] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const [fontSize, setFontSize] = useState(20)
+  
+  // Option 1: Use a scale factor instead of fixed pixels for better responsiveness
+  const [fontScale, setFontScale] = useState(4) // Default to 4vw
+  
   const { showNotification } = useNotification()
-
   const lyricsDisplayRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -145,7 +147,7 @@ export function SongDetail() {
               <div className="flex items-center gap-4">
                 <button
                   onClick={toggleFullscreen}
-                  className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                  className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors shadow-md"
                 >
                   🎬 Fullscreen View
                 </button>
@@ -232,13 +234,19 @@ export function SongDetail() {
                 >
                   {isFullscreen && (
                     <div className="absolute top-4 right-4 flex gap-2 z-50">
-                      <button onClick={() => setFontSize(s => Math.max(16, s - 2))} className="bg-gray-700 text-white p-2 rounded-full">A-</button>
-                      <button onClick={() => setFontSize(s => Math.min(60, s + 2))} className="bg-gray-700 text-white p-2 rounded-full">A+</button>
-                      <button onClick={() => document.exitFullscreen()} className="bg-red-600 text-white p-2 rounded-full">✕</button>
+                      <button onClick={() => setFontScale(s => Math.max(1, s - 0.5))} className="bg-gray-700 text-white p-2 rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-600 transition-colors">A-</button>
+                      <button onClick={() => setFontScale(s => Math.min(10, s + 0.5))} className="bg-gray-700 text-white p-2 rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-600 transition-colors">A+</button>
+                      <button onClick={() => document.exitFullscreen()} className="bg-red-600 text-white p-2 rounded-full w-10 h-10 flex items-center justify-center hover:bg-red-500 transition-colors">✕</button>
                     </div>
                   )}
-                  <div className="prose prose-lg max-w-none text-center" style={{ fontSize: `${fontSize}px` }}>
-                    <ReactMarkdown className="font-serif leading-loose whitespace-pre-line">
+                  <div 
+                    className="prose prose-lg max-w-none text-center" 
+                    style={{ 
+                      fontSize: isFullscreen ? `${fontScale}vw` : 'clamp(1.1rem, 2.5vw, 1.5rem)',
+                      lineHeight: '1.6'
+                    }}
+                  >
+                    <ReactMarkdown className="font-serif whitespace-pre-line">
                       {song.lyrics}
                     </ReactMarkdown>
                   </div>
