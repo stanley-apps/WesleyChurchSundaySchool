@@ -282,11 +282,6 @@ export function Songs() {
                         <h3 className="text-xl font-bold text-gray-900 truncate">
                           {song.title}
                         </h3>
-                        {searchTerm && view === 'vbs' && (
-                          <span className="text-xs font-bold bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
-                            Day {song.vbs_day}
-                          </span>
-                        )}
                       </div>
                     </div>
 
