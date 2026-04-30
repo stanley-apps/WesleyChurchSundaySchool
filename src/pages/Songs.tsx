@@ -19,8 +19,7 @@ export function Songs() {
   const [activeVbsDay, setActiveVbsDay] = useState(1)
   const [fullscreenSong, setFullscreenSong] = useState<Song | null>(null)
   
-  // Option 1: Use viewport-relative scale for fullscreen view
-  const [fontScale, setFontScale] = useState(5) // Default to 5vw
+  const [fontScale, setFontScale] = useState(5)
   
   const fullscreenRef = useRef<HTMLDivElement>(null)
   const { showNotification } = useNotification()
@@ -37,21 +36,30 @@ export function Songs() {
   }, [])
 
   useEffect(() => {
-    let filtered = songs
+    // 1. Filter by category first
+    let categoryFiltered = songs;
     if (view === 'sunday_school') {
-      filtered = songs.filter(s => s.category === 'sunday_school' || !s.category)
+      categoryFiltered = songs.filter(s => s.category === 'sunday_school' || !s.category);
     } else if (view === 'vbs') {
-      filtered = songs.filter(s => s.category === 'vbs' && s.vbs_day === activeVbsDay)
+      categoryFiltered = songs.filter(s => s.category === 'vbs');
     } else {
-      filtered = []
+      categoryFiltered = [];
     }
 
+    // 2. Apply search or day filter
+    let finalFiltered = categoryFiltered;
+    
     if (searchTerm.trim()) {
-      const searchResults = fuse.search(searchTerm).map(r => r.item)
-      filtered = searchResults.filter(s => filtered.some(ls => ls.id === s.id))
+      // If searching, search across the entire category (ignore day)
+      const searchResults = fuse.search(searchTerm).map(r => r.item);
+      // Ensure we only keep results that belong to the current category
+      finalFiltered = searchResults.filter(s => categoryFiltered.some(cs => cs.id === s.id));
+    } else if (view === 'vbs') {
+      // If not searching and in VBS, filter by day
+      finalFiltered = categoryFiltered.filter(s => s.vbs_day === activeVbsDay);
     }
 
-    setDisplaySongs(filtered)
+    setDisplaySongs(finalFiltered);
   }, [songs, view, activeVbsDay, searchTerm, fuse])
 
   const fetchSongs = async () => {
@@ -82,6 +90,9 @@ export function Songs() {
   }
 
   const handleReorder = async (newOrder: Song[]) => {
+    // Reordering is only allowed when not searching
+    if (searchTerm.trim()) return;
+
     setDisplaySongs(newOrder)
     
     const updatedSongs = songs.map(s => {
@@ -205,7 +216,7 @@ export function Songs() {
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="Search songs... 🔍"
+                  placeholder={`Search ${view === 'vbs' ? 'all VBS' : 'Sunday School'} songs... 🔍`}
                   className="w-full px-4 py-4 pl-14 rounded-2xl border-2 border-blue-100 focus:border-blue-400 focus:ring-0 bg-white/80 backdrop-blur-sm shadow-sm text-lg"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -218,7 +229,10 @@ export function Songs() {
                   {[...Array(10)].map((_, i) => (
                     <button
                       key={i + 1}
-                      onClick={() => setActiveVbsDay(i + 1)}
+                      onClick={() => {
+                        setActiveVbsDay(i + 1);
+                        setSearchTerm(''); // Clear search when switching days manually
+                      }}
                       className={`px-8 py-3 rounded-full font-bold whitespace-nowrap transition-all text-lg ${
                         activeVbsDay === i + 1 
                           ? 'bg-orange-500 text-white shadow-lg scale-110' 
@@ -264,9 +278,16 @@ export function Songs() {
                       className="flex-1 min-w-0"
                       onClick={() => handleSongClick(song)}
                     >
-                      <h3 className="text-xl font-bold text-gray-900 truncate">
-                        {song.title}
-                      </h3>
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-xl font-bold text-gray-900 truncate">
+                          {song.title}
+                        </h3>
+                        {searchTerm && view === 'vbs' && (
+                          <span className="text-xs font-bold bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
+                            Day {song.vbs_day}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-2 ml-4">
