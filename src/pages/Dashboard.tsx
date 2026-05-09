@@ -66,7 +66,7 @@ export function Dashboard() {
       icon: '🎮',
       title: 'Games',
       description: 'Fun and interactive learning activities',
-      href: '/dashboard/games/emoji-quiz',
+      href: '/dashboard/games',
       available: true,
       count: quizCount,
       countLabel: 'quizzes'

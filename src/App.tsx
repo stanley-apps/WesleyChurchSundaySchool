@@ -22,6 +22,7 @@ import { StoryEdit } from './pages/StoryEdit'
 import { QuizGenerator } from './pages/QuizGenerator'
 import { QuizDetail } from './pages/QuizDetail'
 import { Timer } from './pages/Timer'
+import { GamesList } from './pages/GamesList'
 import { UpdatePassword } from './pages/UpdatePassword'
 import { AuthConfirm } from './pages/AuthConfirm'
 
@@ -66,7 +67,7 @@ function App() {
             <Route path="stories/:id/edit" element={<StoryEdit />} />
 
             {/* Games Section */}
-            <Route path="games" element={<Navigate to="emoji-quiz" replace />} />
+            <Route path="games" element={<GamesList />} />
             <Route path="games/emoji-quiz" element={<QuizGenerator />} />
             <Route path="games/timer" element={<Timer />} />
             <Route path="quizzes/:id" element={<QuizDetail />} />
