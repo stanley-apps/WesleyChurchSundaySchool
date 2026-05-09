@@ -33,7 +33,26 @@ export function SongDetail() {
 
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement)
+      const isFs = !!document.fullscreenElement;
+      setIsFullscreen(isFs);
+      
+      if (!isFs) {
+        // Unlock orientation when exiting full-screen
+        if (window.screen?.orientation?.unlock) {
+          try {
+            window.screen.orientation.unlock();
+          } catch (e) {
+            console.warn('Orientation unlock failed', e);
+          }
+        }
+      } else {
+        // Lock orientation to landscape when entering full-screen on mobile
+        if (window.screen?.orientation?.lock) {
+          window.screen.orientation.lock('landscape').catch(err => {
+            console.warn('Orientation lock failed (this is normal on desktop):', err);
+          });
+        }
+      }
     }
     document.addEventListener('fullscreenchange', handleFullscreenChange)
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
@@ -105,7 +124,9 @@ export function SongDetail() {
   const toggleFullscreen = () => {
     if (lyricsDisplayRef.current) {
       if (!document.fullscreenElement) {
-        lyricsDisplayRef.current.requestFullscreen()
+        lyricsDisplayRef.current.requestFullscreen().catch(err => {
+          console.error('Fullscreen error:', err)
+        })
       } else {
         document.exitFullscreen()
       }

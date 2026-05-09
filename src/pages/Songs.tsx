@@ -120,22 +120,35 @@ export function Songs() {
   }
 
   const handleSongClick = (song: Song) => {
-    if (view === 'vbs') {
-      setFullscreenSong(song)
-      setTimeout(() => {
-        if (fullscreenRef.current) {
-          fullscreenRef.current.requestFullscreen().catch(err => {
-            console.error('Fullscreen error:', err)
-          })
-        }
-      }, 100)
-    }
+    setFullscreenSong(song)
+    setTimeout(() => {
+      if (fullscreenRef.current) {
+        fullscreenRef.current.requestFullscreen().catch(err => {
+          console.error('Fullscreen error:', err)
+        })
+      }
+    }, 100)
   }
 
   useEffect(() => {
     const handleFsChange = () => {
       if (!document.fullscreenElement) {
         setFullscreenSong(null)
+        // Unlock orientation when exiting full-screen
+        if (window.screen?.orientation?.unlock) {
+          try {
+            window.screen.orientation.unlock();
+          } catch (e) {
+            console.warn('Orientation unlock failed', e);
+          }
+        }
+      } else {
+        // Lock orientation to landscape when entering full-screen on mobile
+        if (window.screen?.orientation?.lock) {
+          window.screen.orientation.lock('landscape').catch(err => {
+            console.warn('Orientation lock failed (this is normal on desktop):', err);
+          });
+        }
       }
     }
     document.addEventListener('fullscreenchange', handleFsChange)
@@ -335,7 +348,7 @@ export function Songs() {
                 </ReactMarkdown>
               </div>
               <div className="mt-32 text-center text-white/20 text-lg font-medium tracking-widest uppercase">
-                VBS Day {fullscreenSong.vbs_day} • Wesley Church Sunday School
+                {fullscreenSong.category === 'vbs' ? `VBS Day ${fullscreenSong.vbs_day}` : 'Sunday School'} • Wesley Church Sunday School
               </div>
             </div>
           )}
