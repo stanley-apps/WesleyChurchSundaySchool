@@ -21,11 +21,12 @@ export function Timer() {
   const wakeLockRef = useRef<any>(null);
   const { showNotification } = useNotification();
 
-  // Using a loud buzzer sound
-  const BUZZER_SOUND_URL = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
+  // Using a loud, continuous buzzer sound
+  const BUZZER_SOUND_URL = 'https://assets.mixkit.co/active_storage/sfx/1006/1006-preview.mp3';
 
   useEffect(() => {
     audioRef.current = new Audio(BUZZER_SOUND_URL);
+    audioRef.current.volume = 1.0; // Ensure maximum volume
     
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -62,7 +63,6 @@ export function Timer() {
 
   const unlockAudio = () => {
     if (!isAudioUnlocked && audioRef.current) {
-      // Play and immediately pause to unlock audio on mobile/modern browsers
       audioRef.current.play().then(() => {
         audioRef.current?.pause();
         if (audioRef.current) audioRef.current.currentTime = 0;
@@ -71,10 +71,11 @@ export function Timer() {
     }
   };
 
-  const playBuzzer = useCallback((duration: number = 3000) => {
+  const playBuzzer = useCallback((duration: number = 4000) => {
     if (audioRef.current) {
       audioRef.current.currentTime = 0;
       audioRef.current.loop = true;
+      audioRef.current.volume = 1.0;
       audioRef.current.play().catch(e => console.error("Buzzer play failed", e));
       
       // Stop the buzzer after the specified duration
