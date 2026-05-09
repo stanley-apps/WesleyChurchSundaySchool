@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import { RotateCcw, Trophy, Timer as TimerIcon } from 'lucide-react';
@@ -17,7 +17,6 @@ export function MemoryMatch() {
   const [cards, setCards] = useState<Card[]>([]);
   const [flippedIndices, setFlippedIndices] = useState<number[]>([]);
   const [moves, setMoves] = useState(0);
-  const [matches, setMatches] = useState(0);
   const [isWon, setIsWon] = useState(false);
   const [time, setTime] = useState(0);
   const [isActive, setIsActive] = useState(false);
@@ -37,7 +36,6 @@ export function MemoryMatch() {
     setCards(gameCards);
     setFlippedIndices([]);
     setMoves(0);
-    setMatches(0);
     setIsWon(false);
     setTime(0);
     setIsActive(false);
@@ -79,18 +77,16 @@ export function MemoryMatch() {
           matchedCards[second].isMatched = true;
           setCards(matchedCards);
           setFlippedIndices([]);
-          setMatches((prev) => {
-            const newMatches = prev + 1;
-            if (newMatches === 8) {
-              setIsWon(true);
-              confetti({
-                particleCount: 150,
-                spread: 70,
-                origin: { y: 0.6 }
-              });
-            }
-            return newMatches;
-          });
+          
+          const allMatched = matchedCards.every(card => card.isMatched);
+          if (allMatched) {
+            setIsWon(true);
+            confetti({
+              particleCount: 150,
+              spread: 70,
+              origin: { y: 0.6 }
+            });
+          }
         }, 500);
       } else {
         setTimeout(() => {

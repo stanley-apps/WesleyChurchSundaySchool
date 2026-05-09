@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Play, Pause, RotateCcw, Bell, Maximize, Minimize, ChevronUp, ChevronDown } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useNotification } from '../contexts/AuthContext';
