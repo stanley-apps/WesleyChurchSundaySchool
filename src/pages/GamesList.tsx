@@ -23,8 +23,8 @@ export function GamesList() {
       title: 'Memory Match',
       description: 'Match Bible verses and characters in this classic card game.',
       icon: '🃏',
-      link: '#',
-      available: false,
+      link: '/dashboard/games/memory-match',
+      available: true,
       color: 'bg-green-100 border-green-200 text-green-800'
     }
   ]

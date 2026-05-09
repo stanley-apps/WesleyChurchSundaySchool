@@ -23,6 +23,7 @@ import { QuizGenerator } from './pages/QuizGenerator'
 import { QuizDetail } from './pages/QuizDetail'
 import { Timer } from './pages/Timer'
 import { GamesList } from './pages/GamesList'
+import { MemoryMatch } from './pages/MemoryMatch'
 import { UpdatePassword } from './pages/UpdatePassword'
 import { AuthConfirm } from './pages/AuthConfirm'
 
@@ -70,6 +71,7 @@ function App() {
             <Route path="games" element={<GamesList />} />
             <Route path="games/emoji-quiz" element={<QuizGenerator />} />
             <Route path="games/timer" element={<Timer />} />
+            <Route path="games/memory-match" element={<MemoryMatch />} />
             <Route path="quizzes/:id" element={<QuizDetail />} />
           </Route>
           <Route 

@@ -36,6 +36,7 @@ export function Layout() {
       subItems: [
         { name: 'Emoji Quiz', href: '/dashboard/games/emoji-quiz', icon: '🧩' },
         { name: 'EventBell Timer', href: '/dashboard/games/timer', icon: '⏱️' },
+        { name: 'Memory Match', href: '/dashboard/games/memory-match', icon: '🃏' },
       ]
     },
     { name: 'Videos', href: '#', icon: '🎥', disabled: true },

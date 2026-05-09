@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Play, Pause, RotateCcw, Bell, Maximize, Minimize, ChevronUp, ChevronDown } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { useNotification } from '../contexts/AuthContext';
 
 type TimerState = 'idle' | 'running' | 'paused' | 'warning' | 'completed';
@@ -17,9 +18,9 @@ export function Timer() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const wakeLockRef = useRef<any>(null);
   const { showNotification } = useNotification();
 
-  // Bell sound URL (Publicly available bell sound)
   const BELL_SOUND_URL = 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3';
 
   useEffect(() => {
@@ -29,11 +30,30 @@ export function Timer() {
       setIsFullscreen(!!document.fullscreenElement);
     };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
+    
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       if (timerRef.current) clearInterval(timerRef.current);
+      releaseWakeLock();
     };
   }, []);
+
+  const requestWakeLock = async () => {
+    if ('wakeLock' in navigator) {
+      try {
+        wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+      } catch (err: any) {
+        console.error(`Wake Lock error: ${err.name}, ${err.message}`);
+      }
+    }
+  };
+
+  const releaseWakeLock = () => {
+    if (wakeLockRef.current) {
+      wakeLockRef.current.release();
+      wakeLockRef.current = null;
+    }
+  };
 
   const unlockAudio = () => {
     if (!isAudioUnlocked && audioRef.current) {
@@ -52,8 +72,29 @@ export function Timer() {
     }
   }, []);
 
+  const triggerConfetti = () => {
+    const duration = 3 * 1000;
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+    const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+    const interval: any = setInterval(function() {
+      const timeLeft = animationEnd - Date.now();
+
+      if (timeLeft <= 0) {
+        return clearInterval(interval);
+      }
+
+      const particleCount = 50 * (timeLeft / duration);
+      confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+      confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+    }, 250);
+  };
+
   const startTimer = () => {
     unlockAudio();
+    requestWakeLock();
     const totalSeconds = hours * 3600 + minutes * 60 + seconds;
     if (totalSeconds <= 0 && state === 'idle') {
       showNotification('Please set a time first!', 'info');
@@ -70,12 +111,14 @@ export function Timer() {
 
   const pauseTimer = () => {
     setState('paused');
+    releaseWakeLock();
     if (timerRef.current) clearInterval(timerRef.current);
   };
 
   const resetTimer = () => {
     setState('idle');
     setTimeLeft(initialTime);
+    releaseWakeLock();
     if (timerRef.current) clearInterval(timerRef.current);
   };
 
@@ -97,6 +140,8 @@ export function Timer() {
             clearInterval(timerRef.current!);
             setState('completed');
             playBell();
+            triggerConfetti();
+            releaseWakeLock();
             return 0;
           }
           
@@ -153,7 +198,6 @@ export function Timer() {
       ref={containerRef}
       className={`min-h-screen flex flex-col transition-colors duration-500 ${getBgColor()} text-white p-4 sm:p-8`}
     >
-      {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold tracking-tight drop-shadow-md">EventBell Timer ⏱️</h1>
         <button 
@@ -164,7 +208,6 @@ export function Timer() {
         </button>
       </div>
 
-      {/* Main Display */}
       <div className="flex-1 flex flex-col items-center justify-center space-y-12">
         <div className="text-center">
           <div className={`font-mono font-bold tabular-nums drop-shadow-2xl ${isFullscreen ? 'text-[20vw]' : 'text-7xl sm:text-9xl'}`}>
@@ -177,7 +220,6 @@ export function Timer() {
           )}
         </div>
 
-        {/* Controls Section */}
         <div className="w-full max-w-2xl space-y-8">
           {state === 'idle' && (
             <div className="grid grid-cols-3 gap-4">
@@ -194,7 +236,6 @@ export function Timer() {
             </div>
           )}
 
-          {/* Presets */}
           {state === 'idle' && (
             <div className="flex flex-wrap justify-center gap-2">
               {[1, 5, 10, 15, 30, 45, 60].map((m) => (
@@ -209,7 +250,6 @@ export function Timer() {
             </div>
           )}
 
-          {/* Action Buttons */}
           <div className="flex justify-center items-center gap-6">
             <button
               onClick={resetTimer}
@@ -248,7 +288,6 @@ export function Timer() {
         </div>
       </div>
 
-      {/* Footer Info */}
       <div className="mt-8 text-center text-white/60 text-sm font-medium uppercase tracking-widest">
         {state === 'idle' ? 'Set time and press play' : state === 'running' ? 'Timer active' : state === 'paused' ? 'Timer paused' : state === 'warning' ? 'Final minute!' : 'Session complete'}
       </div>
