@@ -8,6 +8,7 @@ export function QuizDisplay({ quiz }: QuizDisplayProps) {
   if (!quiz || !quiz.questions || quiz.questions.length === 0) {
     return <div className="text-center text-gray-600">No quiz data to display.</div>;
   }
+  const isEmojiQuiz = quiz.generation_metadata?.questionMode === 'emoji';
 
   return (
     <div className="space-y-8">
@@ -18,7 +19,7 @@ export function QuizDisplay({ quiz }: QuizDisplayProps) {
 
       {quiz.questions.map((question, qIndex) => (
         <div key={question.id || qIndex} className="bg-blue-50/80 backdrop-blur-sm rounded-xl shadow-md p-6 border border-blue-200">
-          <p className="text-xl font-semibold text-gray-900 mb-4 text-center">
+          <p className={`${isEmojiQuiz ? 'text-4xl sm:text-5xl' : 'text-xl'} font-semibold text-gray-900 mb-4 text-center`}>
             Question {qIndex + 1}: {question.question}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">

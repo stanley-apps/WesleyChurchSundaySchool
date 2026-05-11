@@ -41,7 +41,26 @@ async function fetchFileContent(fileUrl: string, fileType: string): Promise<stri
 }
 
 // Function to call a generic AI API
-async function generateQuizWithAI(quizTopic: string, difficulty: string, numQuestions: number, chunks: string | null): Promise<{ questions: QuizQuestion[], aiModel: string }> {
+type QuestionMode = 'regular' | 'emoji';
+
+function normalizeDifficulty(difficulty: string): QuizQuestion['difficulty'] {
+  const normalized = String(difficulty || 'easy').toLowerCase();
+  if (normalized === 'medium') return 'Medium';
+  if (normalized === 'hard') return 'Hard';
+  if (normalized === 'extreme' || normalized === 'extremely hard') return 'Extremely Hard';
+  return 'Easy';
+}
+
+function normalizeQuestionText(question: string): string {
+  return question.toLowerCase().replace(/[^\p{L}\p{N}\p{Emoji_Presentation}\s]/gu, '').replace(/\s+/g, ' ').trim();
+}
+
+function withBibleVersion(reference?: string): string {
+  if (!reference) return 'NIV/ESV';
+  return /NIV|ESV/i.test(reference) ? reference : `${reference} NIV/ESV`;
+}
+
+async function generateQuizWithAI(quizTopic: string, difficulty: string, numQuestions: number, chunks: string | null, questionMode: QuestionMode): Promise<{ questions: QuizQuestion[], aiModel: string }> {
   if (!AI_API_KEY) {
     throw new Error("AI_API_KEY is not set in environment variables.");
   }
@@ -51,6 +70,7 @@ async function generateQuizWithAI(quizTopic: string, difficulty: string, numQues
   const systemPrompt = `You are a Bible-based quiz creator for Sunday School children under age 17.
 You create simple, wholesome, educational quizzes drawn directly from the provided content.
 The questions should promote curiosity, moral reflection, and biblical literacy.
+Question mode: ${questionMode}.
 
 SAFETY RULES:
 - Never include adult, violent, profane, or inappropriate topics.
@@ -63,7 +83,7 @@ OUTPUT FORMAT: JSON array of question objects.
 Each question object must look like this:
 {
   "id": "string",
-  "question": "string",
+  "question": "${questionMode === 'emoji' ? 'emoji clue only, no words' : 'string'}",
   "options": ["optA","optB","optC","optD"],
   "answer_index": 0,
   "explanation": "short explanation in 1-2 sentences",
@@ -78,10 +98,10 @@ DIFFICULTY GUIDELINES:
 - Hard → requires cross-linking concepts or comparing people/events
 - Extremely Hard → synthesis or symbolic interpretation`;
 
-  const userPrompt = `Create exactly ${numQuestions} Multiple-Choice Questions from the text below.
+  const userPrompt = `Create up to ${numQuestions} unique Multiple-Choice Questions from the text below.
 
 Topic: ${quizTopic}
-Difficulty: ${difficulty}
+Difficulty: ${normalizeDifficulty(difficulty)}
 Source Text:
 
 ${chunks || ''}
@@ -89,25 +109,30 @@ ${chunks || ''}
 Each question must:
 - Relate to the topic
 - Be child-friendly
+- Match the selected difficulty exactly: ${normalizeDifficulty(difficulty)}
+- Use NIV/ESV as the Bible reference basis
+- Set source_reference to a book/chapter/verse plus "NIV/ESV"
+- Not repeat the same question, emoji clue, or answer concept
 - Include 4 unique, plausible options
 - Highlight ONE correct answer index
 - Include a short explanation with Bible reference (Book, Chapter, Verse if found)
-- Stay under 30 words per question
+- Stay under 30 words per regular question
+${questionMode === 'emoji' ? '- Put emoji clues only in the question field. Do not include words, punctuation, or labels in the question field.' : '- Put a normal text question in the question field.'}
 
 ### FEW-SHOT EXAMPLES:
 Example 1:
-Question: Who built the ark?
+Question: ${questionMode === 'emoji' ? '👨 🔨 🚢 🌧️' : 'Who built the ark?'}
 Options: ["Noah", "Abraham", "Solomon", "Moses"]
 Answer: 0
 Explanation: Noah built the ark to survive the flood (Genesis 6–9).
-Source Reference: Genesis 6-9
+Source Reference: Genesis 6-9 NIV/ESV
 
 Example 2:
-Question: Who interpreted King Nebuchadnezzar’s dream?
+Question: ${questionMode === 'emoji' ? '👑 😴 💭 🙏' : 'Who interpreted King Nebuchadnezzar’s dream?'}
 Options: ["Daniel", "Joseph", "Elijah", "David"]
 Answer: 0
 Explanation: Daniel explained the king’s dream with God's help (Daniel 2).
-Source Reference: Daniel 2
+Source Reference: Daniel 2 NIV/ESV
 
 ### Generate your quiz now as JSON only.`;
 
@@ -150,7 +175,11 @@ Source Reference: Daniel 2
       throw new Error("AI response was not a JSON array of questions.");
     }
 
-    const validatedQuestions: QuizQuestion[] = parsedQuestions.map((q: any, index: number) => {
+    const seenQuestions = new Set<string>();
+    const selectedDifficulty = normalizeDifficulty(difficulty);
+    const validatedQuestions: QuizQuestion[] = [];
+
+    parsedQuestions.forEach((q: any, index: number) => {
       // Generate a unique ID if not provided by AI
       const questionId = q.id || `q${String(index + 1).padStart(3, '0')}`;
 
@@ -163,19 +192,30 @@ Source Reference: Daniel 2
         typeof q.topic !== 'string' || q.topic.trim() === ''
       ) {
         console.warn(`Invalid question structure at index ${index}:`, q);
-        throw new Error(`AI generated an invalid question structure at index ${index}.`);
+        return;
       }
-      return {
+
+      const normalizedQuestion = normalizeQuestionText(q.question);
+      const answerConcept = String(q.options[q.answer_index] || '').toLowerCase().trim();
+      const dedupeKey = `${normalizedQuestion}|${answerConcept}`;
+      if (seenQuestions.has(dedupeKey)) return;
+      seenQuestions.add(dedupeKey);
+
+      validatedQuestions.push({
         id: questionId,
-        question: q.question,
+        question: q.question.trim(),
         options: q.options,
         answer_index: q.answer_index,
         explanation: q.explanation,
-        difficulty: q.difficulty,
+        difficulty: selectedDifficulty,
         topic: q.topic,
-        source_reference: q.source_reference || undefined,
-      };
+        source_reference: withBibleVersion(q.source_reference),
+      });
     });
+
+    if (validatedQuestions.length === 0) {
+      throw new Error("AI did not return any valid unique quiz questions.");
+    }
 
     return { questions: validatedQuestions, aiModel: data.model || "Unknown AI Model" };
 
@@ -215,7 +255,8 @@ serve(async (req: Request) => {
   )
 
   try {
-    const { quizTopic, difficulty, numQuestions, fileUrl, fileType } = await req.json() // Changed topic to quizTopic
+    const { quizTopic, difficulty, numQuestions, fileUrl, fileType, questionMode = 'regular' } = await req.json() // Changed topic to quizTopic
+    const normalizedQuestionMode: QuestionMode = questionMode === 'emoji' ? 'emoji' : 'regular';
 
     if (!quizTopic && !fileUrl) {
       return new Response(
@@ -245,7 +286,7 @@ serve(async (req: Request) => {
     }
 
     // Generate quiz using AI
-    const { questions: generatedQuestions, aiModel } = await generateQuizWithAI(quizTopic, difficulty, numQuestions, chunks); // Changed topic to quizTopic, fileContent to chunks
+    const { questions: generatedQuestions, aiModel } = await generateQuizWithAI(quizTopic, difficulty, numQuestions, chunks, normalizedQuestionMode); // Changed topic to quizTopic, fileContent to chunks
 
     // Insert the generated quiz into the 'quizzes' table
     const { data: quiz, error: insertError } = await supabaseClient
@@ -254,7 +295,7 @@ serve(async (req: Request) => {
         user_id: user.id,
         topic: quizTopic, // Changed to quizTopic
         difficulty,
-        num_questions: numQuestions,
+        num_questions: generatedQuestions.length,
         questions: generatedQuestions,
         status: 'draft', // Initially set as draft
         ai_model_used: aiModel,
@@ -262,6 +303,7 @@ serve(async (req: Request) => {
           aiModel: aiModel,
           generationTime: Date.now(), // Use actual generation time
           validationScore: 1.0, // Assuming perfect validation after parsing
+          questionMode: normalizedQuestionMode,
           sourceFileUrl: fileUrl, // Store the source file URL
           sourceFileType: fileType // Store the source file type
         }

@@ -4,10 +4,10 @@ import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
 export function GamesList() {
   const games = [
     {
-      title: 'AI Quiz Generator',
-      description: 'Create fun Bible quizzes from any topic or document using AI.',
+      title: 'Bible Quiz Builder',
+      description: 'Create Bible quizzes from a topic or document, then play them with the class.',
       icon: '🧩',
-      link: '/dashboard/games/emoji-quiz',
+      link: '/dashboard/games/bible-quiz',
       available: true,
       color: 'bg-purple-100 border-purple-200 text-purple-800'
     },

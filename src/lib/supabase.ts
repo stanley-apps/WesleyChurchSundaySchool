@@ -61,6 +61,8 @@ export interface QuizQuestion {
   source_reference?: string;
 }
 
+export type QuizQuestionMode = 'regular' | 'emoji';
+
 export interface Quiz {
   id: string;
   user_id: string;
@@ -75,6 +77,7 @@ export interface Quiz {
     aiModel: string;
     generationTime: number;
     validationScore: number;
+    questionMode?: QuizQuestionMode;
     sourceFileUrl?: string;
     sourceFileType?: string;
   };

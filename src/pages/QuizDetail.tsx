@@ -67,7 +67,7 @@ export function QuizDetail() {
               {error || 'Quiz not found.'}
             </div>
             <Link 
-              to="/dashboard/games/emoji-quiz" 
+              to="/dashboard/games/bible-quiz" 
               className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
             >
               Back to Quiz Generator
@@ -84,7 +84,7 @@ export function QuizDetail() {
         <div className="max-w-4xl mx-auto">
           <div className="mb-6 flex items-center justify-between">
             <Link
-              to="/dashboard/games/emoji-quiz"
+              to="/dashboard/games/bible-quiz"
               className="inline-flex items-center text-blue-600 hover:text-blue-800 drop-shadow-sm"
             >
               <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

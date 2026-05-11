@@ -23,6 +23,7 @@ const StoryDetail = lazy(() => import('./pages/StoryDetail').then((module) => ({
 const StoryEdit = lazy(() => import('./pages/StoryEdit').then((module) => ({ default: module.StoryEdit })))
 const QuizGenerator = lazy(() => import('./pages/QuizGenerator').then((module) => ({ default: module.QuizGenerator })))
 const QuizDetail = lazy(() => import('./pages/QuizDetail').then((module) => ({ default: module.QuizDetail })))
+const QuizPlay = lazy(() => import('./pages/QuizPlay').then((module) => ({ default: module.QuizPlay })))
 const Timer = lazy(() => import('./pages/Timer').then((module) => ({ default: module.Timer })))
 const GamesList = lazy(() => import('./pages/GamesList').then((module) => ({ default: module.GamesList })))
 const MemoryMatch = lazy(() => import('./pages/MemoryMatch').then((module) => ({ default: module.MemoryMatch })))
@@ -80,9 +81,11 @@ function App() {
 
               {/* Games Section */}
               <Route path="games" element={<GamesList />} />
-              <Route path="games/emoji-quiz" element={<QuizGenerator />} />
+              <Route path="games/bible-quiz" element={<QuizGenerator />} />
+              <Route path="games/emoji-quiz" element={<Navigate to="/dashboard/games/bible-quiz" replace />} />
               <Route path="games/timer" element={<Timer />} />
               <Route path="games/memory-match" element={<MemoryMatch />} />
+              <Route path="quizzes/:id/play" element={<QuizPlay />} />
               <Route path="quizzes/:id" element={<QuizDetail />} />
             </Route>
             <Route 
