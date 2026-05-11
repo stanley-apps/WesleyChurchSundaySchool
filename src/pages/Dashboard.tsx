@@ -4,8 +4,11 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
 
+const SHOW_VBS_STORAGE_KEY = 'songs-show-vbs'
+
 export function Dashboard() {
   const { user, signOut } = useAuth()
+  const showVbs = localStorage.getItem(SHOW_VBS_STORAGE_KEY) !== 'false'
   const [songCount, setSongCount] = useState(0)
   const [vbsSongCount, setVbsSongCount] = useState(0)
   const [lessonCount, setLessonCount] = useState(0)
@@ -22,12 +25,27 @@ export function Dashboard() {
   const fetchCountsAndDisplayName = async () => {
     setLoading(true)
     try {
-      const { count: songC } = await supabase.from('songs').select('*', { count: 'exact', head: true }).eq('category', 'sunday_school')
-      const { count: vbsC } = await supabase.from('songs').select('*', { count: 'exact', head: true }).eq('category', 'vbs')
-      const { count: lessonC } = await supabase.from('lessons').select('*', { count: 'exact', head: true })
-      const { count: mvC } = await supabase.from('memory_verses').select('*', { count: 'exact', head: true })
-      const { count: storyC } = await supabase.from('stories').select('*', { count: 'exact', head: true })
-      const { count: qC } = await supabase.from('quizzes').select('*', { count: 'exact', head: true })
+      const [
+        { count: songC },
+        { count: vbsC },
+        { count: lessonC },
+        { count: mvC },
+        { count: storyC },
+        { count: qC },
+        profileResult,
+      ] = await Promise.all([
+        supabase.from('songs').select('*', { count: 'exact', head: true }).eq('category', 'sunday_school'),
+        showVbs
+          ? supabase.from('songs').select('*', { count: 'exact', head: true }).eq('category', 'vbs')
+          : Promise.resolve({ count: 0 }),
+        supabase.from('lessons').select('*', { count: 'exact', head: true }),
+        supabase.from('memory_verses').select('*', { count: 'exact', head: true }),
+        supabase.from('stories').select('*', { count: 'exact', head: true }),
+        supabase.from('quizzes').select('*', { count: 'exact', head: true }),
+        user?.id
+          ? supabase.from('profiles').select('display_name').eq('user_id', user.id).single()
+          : Promise.resolve({ data: null }),
+      ])
       
       setSongCount(songC || 0)
       setVbsSongCount(vbsC || 0)
@@ -36,10 +54,7 @@ export function Dashboard() {
       setStoryCount(storyC || 0)
       setQuizCount(qC || 0)
       
-      if (user?.id) {
-        const { data } = await supabase.from('profiles').select('display_name').eq('user_id', user.id).single()
-        if (data?.display_name) setDisplayName(data.display_name)
-      }
+      if (profileResult.data?.display_name) setDisplayName(profileResult.data.display_name)
     } catch (err) {
       console.error('Error fetching dashboard data:', err)
     } finally {
@@ -51,7 +66,9 @@ export function Dashboard() {
     {
       icon: '🎵',
       title: 'Songs Hub',
-      description: `Sunday School (${songCount}) & VBS (${vbsSongCount})`,
+      description: showVbs
+        ? `Sunday School (${songCount}) & VBS (${vbsSongCount})`
+        : `Sunday School (${songCount})`,
       href: '/dashboard/songs',
       available: true,
     },

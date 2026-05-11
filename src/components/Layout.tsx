@@ -1,7 +1,6 @@
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { ChildFriendlyBackground } from './ChildFriendlyBackground'
 
 interface SubItem {
   name: string;
@@ -191,9 +190,7 @@ export function Layout() {
         {/* Main content */}
         <div className="lg:pl-64 flex flex-col flex-1">
           <main className="flex-1">
-            <ChildFriendlyBackground>
-              <Outlet />
-            </ChildFriendlyBackground>
+            <Outlet />
           </main>
         </div>
       </div>
