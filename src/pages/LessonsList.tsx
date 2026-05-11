@@ -24,7 +24,13 @@ export function LessonsList() {
       link: '/dashboard/stories',
       available: true,
     },
-    // Removed Emoji Quiz Generator from here as it's now under 'Games'
+    {
+      title: 'PDF to Markdown',
+      description: 'Extract text, OCR scanned pages, and convert lesson PDFs into clean Markdown.',
+      icon: '📝',
+      link: '/dashboard/lessons/pdf-to-markdown',
+      available: true,
+    },
   ]
 
   return (

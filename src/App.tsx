@@ -10,6 +10,7 @@ const Songs = lazy(() => import('./pages/Songs').then((module) => ({ default: mo
 const SongDetail = lazy(() => import('./pages/SongDetail').then((module) => ({ default: module.SongDetail })))
 const SongUpload = lazy(() => import('./pages/SongUpload').then((module) => ({ default: module.SongUpload })))
 const LessonsList = lazy(() => import('./pages/LessonsList').then((module) => ({ default: module.LessonsList })))
+const PdfToMarkdown = lazy(() => import('./pages/PdfToMarkdown').then((module) => ({ default: module.PdfToMarkdown })))
 const SyllabusesList = lazy(() => import('./pages/SyllabusesList').then((module) => ({ default: module.SyllabusesList })))
 const LessonUpload = lazy(() => import('./pages/LessonUpload').then((module) => ({ default: module.LessonUpload })))
 const LessonEdit = lazy(() => import('./pages/LessonEdit').then((module) => ({ default: module.LessonEdit })))
@@ -61,6 +62,7 @@ function App() {
               
               {/* Lessons Hub */}
               <Route path="lessons" element={<LessonsList />} /> 
+              <Route path="lessons/pdf-to-markdown" element={<PdfToMarkdown />} /> 
               
               {/* Syllabuses Section */}
               <Route path="syllabuses" element={<SyllabusesList />} />
