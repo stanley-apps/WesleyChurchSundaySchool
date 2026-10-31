@@ -4,6 +4,8 @@ import Fuse from 'fuse.js'
 import ReactMarkdown from 'react-markdown'
 import { motion, AnimatePresence, Reorder } from 'framer-motion'
 import { Check, Download, GripVertical, Eye, Search } from 'lucide-react'
+import { PDFDocument, rgb, StandardFonts, type PDFFont, type PDFPage } from 'pdf-lib'
+import fontkit from '@pdf-lib/fontkit'
 import { supabase, Song } from '../lib/supabase'
 import { useAuth, useNotification } from '../contexts/AuthContext'
 import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
@@ -132,24 +134,41 @@ function sortSongsForDisplay(songs: Song[]) {
   })
 }
 
-function pdfSafeText(value: string) {
-  return value
-    .replace(/[–—]/g, '-')
-    .replace(/[“”]/g, '"')
-    .replace(/[‘’]/g, "'")
-    .replace(/[^\x20-\x7E]/g, '?')
-}
-
-function pdfEscape(value: string) {
-  return pdfSafeText(value).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)')
-}
-
-function createSongsPdf(songs: Song[]) {
+async function createSongsPdf(songs: Song[]) {
   const pageWidth = 612
   const pageHeight = 792
   const margin = 54
-  const bottomMargin = 52
-  const linesPerTextBlock = (text: string, maxCharacters: number) => {
+  const bottomMargin = 62
+  const pdf = await PDFDocument.create()
+  pdf.registerFontkit(fontkit)
+
+  const loadFont = async (path: string) => {
+    const response = await fetch(path)
+    if (!response.ok) throw new Error(`Font could not be loaded: ${path}`)
+    return response.arrayBuffer()
+  }
+  const [teluguBytes, hindiBytes] = await Promise.all([
+    loadFont('/fonts/NotoSansTelugu.ttf'),
+    loadFont('/fonts/NotoSansDevanagari.ttf'),
+  ])
+  const [latinFont, latinBoldFont, teluguFont, hindiFont] = await Promise.all([
+    pdf.embedFont(StandardFonts.Helvetica),
+    pdf.embedFont(StandardFonts.HelveticaBold),
+    pdf.embedFont(teluguBytes, { subset: true }),
+    pdf.embedFont(hindiBytes, { subset: true }),
+  ])
+
+  const fontForText = (text: string, bold = false): PDFFont => {
+    if (/[\u0C00-\u0C7F]/.test(text)) return teluguFont
+    if (/[\u0900-\u097F]/.test(text)) return hindiFont
+    return bold ? latinBoldFont : latinFont
+  }
+
+  const textRuns = (text: string) => text.match(/[\u0C00-\u0C7F]+|[\u0900-\u097F]+|[^\u0900-\u0C7F]+/g) || ['']
+  const textWidth = (text: string, size: number, fallbackFont: PDFFont) =>
+    textRuns(text).reduce((width, run) => width + fontForText(run, fallbackFont === latinBoldFont).widthOfTextAtSize(run, size), 0)
+
+  const wrapText = (text: string, size: number, fallbackFont: PDFFont) => {
     const lines: string[] = []
     text.split(/\r?\n/).forEach((paragraph) => {
       if (!paragraph.trim()) {
@@ -157,82 +176,83 @@ function createSongsPdf(songs: Song[]) {
         return
       }
 
-      let remaining = paragraph.trim()
-      while (remaining.length > maxCharacters) {
-        let breakAt = remaining.lastIndexOf(' ', maxCharacters)
-        if (breakAt < 1) breakAt = maxCharacters
-        lines.push(remaining.slice(0, breakAt).trim())
-        remaining = remaining.slice(breakAt).trim()
+      let currentLine = ''
+      paragraph.trim().split(/\s+/).forEach((word) => {
+        const candidate = currentLine ? `${currentLine} ${word}` : word
+        if (textWidth(candidate, size, fallbackFont) <= pageWidth - margin * 2) {
+          currentLine = candidate
+          return
+        }
+
+        if (currentLine) lines.push(currentLine)
+        currentLine = word
+        while (textWidth(currentLine, size, fallbackFont) > pageWidth - margin * 2 && currentLine.length > 1) {
+          let splitAt = currentLine.length - 1
+          while (splitAt > 1 && textWidth(currentLine.slice(0, splitAt), size, fallbackFont) > pageWidth - margin * 2) {
+            splitAt -= 1
+          }
+          lines.push(currentLine.slice(0, splitAt))
+          currentLine = currentLine.slice(splitAt)
+        }
+      })
+      if (currentLine) {
+        lines.push(currentLine)
       }
-      lines.push(remaining)
     })
     return lines
   }
 
-  const pages: string[][] = [[]]
+  const pages: PDFPage[] = [pdf.addPage([pageWidth, pageHeight])]
+  let page = pages[0]
   let y = pageHeight - margin
   const ensureSpace = (height: number) => {
     if (y - height < bottomMargin) {
-      pages.push([])
+      page = pdf.addPage([pageWidth, pageHeight])
+      pages.push(page)
       y = pageHeight - margin
     }
   }
-  const addText = (text: string, size: number, font: 'F1' | 'F2' = 'F1', gapAfter = 0) => {
+  const addText = (text: string, size: number, font: PDFFont, gapAfter = 0) => {
     ensureSpace(size + gapAfter)
-    pages[pages.length - 1].push(
-      `BT /${font} ${size} Tf 1 0 0 1 ${margin} ${y.toFixed(2)} Tm (${pdfEscape(text)}) Tj ET`
-    )
+    let x = margin
+    textRuns(text).forEach((run) => {
+      const runFont = fontForText(run, font === latinBoldFont)
+      page.drawText(run, { x, y, size, font: runFont, color: rgb(0.12, 0.12, 0.16) })
+      x += runFont.widthOfTextAtSize(run, size)
+    })
     y -= size + gapAfter
   }
 
-  addText('Wesley Church Sunday School Songs', 22, 'F2', 8)
-  addText(`${songs.length} song${songs.length === 1 ? '' : 's'} • Generated ${new Date().toLocaleDateString()}`, 10, 'F1', 20)
+  addText('Wesley Church Sunday School Songs', 22, latinBoldFont, 8)
+  addText(`${songs.length} song${songs.length === 1 ? '' : 's'} - Generated ${new Date().toLocaleDateString()}`, 10, latinFont, 20)
 
   songs.forEach((song, index) => {
     ensureSpace(52)
     if (index > 0) {
-      pages[pages.length - 1].push(`0.82 g ${margin} ${y.toFixed(2)} m ${pageWidth - margin} ${y.toFixed(2)} l S 0 g`)
+      page.drawLine({ start: { x: margin, y }, end: { x: pageWidth - margin, y }, thickness: 0.7, color: rgb(0.82, 0.82, 0.82) })
       y -= 18
     }
-    addText(song.title, 16, 'F2', 4)
-    addText(song.category === 'vbs' ? `VBS Day ${song.vbs_day || ''}`.trim() : 'Sunday School', 9, 'F1', 10)
-    linesPerTextBlock(song.lyrics || '', 92).forEach((line) => addText(line, 10.5, 'F1', 3))
+    const titleFont = fontForText(song.title, true)
+    wrapText(song.title, 16, titleFont).forEach((line) => addText(line, 16, titleFont, 4))
+    addText(song.category === 'vbs' ? `VBS Day ${song.vbs_day || ''}`.trim() : 'Sunday School', 9, latinFont, 10)
+    const lyricsFont = fontForText(song.lyrics || '')
+    wrapText(song.lyrics || '', 10.5, lyricsFont).forEach((line) => addText(line, 10.5, lyricsFont, 3))
     y -= 10
   })
 
-  const objects: string[] = []
-  objects[1] = '<< /Type /Catalog /Pages 2 0 R >>'
-  objects[2] = '<< /Type /Pages /Kids [PAGE_REFS] /Count PAGE_COUNT >>'
-  objects[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'
-  objects[4] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>'
-  const pageRefs: string[] = []
-
-  pages.forEach((commands, pageIndex) => {
-    const stream = commands.join('\n')
-    const contentObject = objects.length
-    objects.push(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`)
-    const pageObject = objects.length
-    objects.push(
-      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentObject} 0 R >>`
-    )
-    pageRefs[pageIndex] = `${pageObject} 0 R`
+  pages.forEach((currentPage, index) => {
+    currentPage.drawLine({ start: { x: margin, y: 42 }, end: { x: pageWidth - margin, y: 42 }, thickness: 0.6, color: rgb(0.78, 0.78, 0.78) })
+    const footer = `Page ${index + 1} of ${pages.length}`
+    currentPage.drawText(footer, {
+      x: pageWidth - margin - latinFont.widthOfTextAtSize(footer, 9),
+      y: 27,
+      size: 9,
+      font: latinFont,
+      color: rgb(0.35, 0.35, 0.4),
+    })
   })
 
-  objects[2] = objects[2].replace('PAGE_REFS', pageRefs.join(' ')).replace('PAGE_COUNT', String(pages.length))
-  let pdf = '%PDF-1.4\n'
-  const offsets: number[] = [0]
-  objects.forEach((object, index) => {
-    if (!object) return
-    offsets[index] = pdf.length
-    pdf += `${index} 0 obj\n${object}\nendobj\n`
-  })
-  const xrefOffset = pdf.length
-  pdf += `xref\n0 ${objects.length}\n0000000000 65535 f \n`
-  for (let index = 1; index < objects.length; index++) {
-    pdf += `${String(offsets[index] || 0).padStart(10, '0')} 00000 n \n`
-  }
-  pdf += `trailer\n<< /Size ${objects.length} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`
-  return pdf
+  return pdf.save()
 }
 
 export function Songs() {
@@ -563,7 +583,7 @@ export function Songs() {
     })
   }
 
-  const handleDownloadSelected = () => {
+  const handleDownloadSelected = async () => {
     const selectedSongs = downloadCatalog.filter((song) => selectedDownloadIds.has(song.id))
 
     if (selectedSongs.length === 0) {
@@ -573,7 +593,7 @@ export function Songs() {
 
     setDownloading(true)
     try {
-      const pdf = createSongsPdf(selectedSongs)
+      const pdf = await createSongsPdf(selectedSongs)
       const blob = new Blob([pdf], { type: 'application/pdf' })
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
@@ -586,6 +606,8 @@ export function Songs() {
 
       showNotification(`Downloaded ${selectedSongs.length} song${selectedSongs.length === 1 ? '' : 's'} as a PDF.`, 'success')
       setShowDownloadManager(false)
+    } catch (err: any) {
+      showNotification('Could not create the PDF: ' + err.message, 'error')
     } finally {
       setDownloading(false)
     }
