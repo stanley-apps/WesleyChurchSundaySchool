@@ -148,13 +148,15 @@ async function createSongsPdf(songs: Song[]) {
     if (!response.ok) throw new Error(`Font could not be loaded: ${path}`)
     return response.arrayBuffer()
   }
-  const [teluguBytes, hindiBytes] = await Promise.all([
+  const [latinUnicodeBytes, teluguBytes, hindiBytes] = await Promise.all([
+    loadFont('/fonts/NotoSans-Regular.ttf'),
     loadFont('/fonts/NTR-Regular.ttf'),
     loadFont('/fonts/NotoSansDevanagari.ttf'),
   ])
-  const [latinFont, latinBoldFont, teluguFont, hindiFont] = await Promise.all([
+  const [latinFont, latinBoldFont, latinUnicodeFont, teluguFont, hindiFont] = await Promise.all([
     pdf.embedFont(StandardFonts.Helvetica),
     pdf.embedFont(StandardFonts.HelveticaBold),
+    pdf.embedFont(latinUnicodeBytes),
     pdf.embedFont(teluguBytes),
     pdf.embedFont(hindiBytes),
   ])
@@ -162,6 +164,7 @@ async function createSongsPdf(songs: Song[]) {
   const fontForText = (text: string, bold = false): PDFFont => {
     if (/[\u0C00-\u0C7F]/.test(text)) return teluguFont
     if (/[\u0900-\u097F]/.test(text)) return hindiFont
+    if (/[^\x00-\x7F]/.test(text)) return latinUnicodeFont
     return bold ? latinBoldFont : latinFont
   }
 
