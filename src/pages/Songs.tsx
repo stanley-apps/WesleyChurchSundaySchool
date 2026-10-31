@@ -4,9 +4,7 @@ import Fuse from 'fuse.js'
 import ReactMarkdown from 'react-markdown'
 import { motion, AnimatePresence, Reorder } from 'framer-motion'
 import { Check, Download, GripVertical, Eye, Search } from 'lucide-react'
-import { PDFDocument, rgb, StandardFonts, type PDFFont, type PDFPage } from 'pdf-lib'
-import fontkit from '@pdf-lib/fontkit'
-import 'regenerator-runtime/runtime.js'
+import { PDFDocument } from 'pdf-lib'
 import { supabase, Song } from '../lib/supabase'
 import { useAuth, useNotification } from '../contexts/AuthContext'
 import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
@@ -140,39 +138,36 @@ async function createSongsPdf(songs: Song[]) {
   const pageHeight = 792
   const margin = 54
   const bottomMargin = 62
-  const pdf = await PDFDocument.create()
-  pdf.registerFontkit(fontkit)
+  const pixelScale = 2
+  const fontDefinitions = [
+    { family: 'SongTelugu', source: '/fonts/Mandali-Regular.ttf' },
+    { family: 'SongHindi', source: '/fonts/NotoSansDevanagari.ttf' },
+    { family: 'SongUnicode', source: '/fonts/NotoSans-Regular.ttf' },
+  ]
 
-  const loadFont = async (path: string) => {
-    const response = await fetch(path)
-    if (!response.ok) throw new Error(`Font could not be loaded: ${path}`)
-    return response.arrayBuffer()
-  }
-  const [latinUnicodeBytes, teluguBytes, hindiBytes] = await Promise.all([
-    loadFont('/fonts/NotoSans-Regular.ttf'),
-    loadFont('/fonts/Mandali-Regular.ttf'),
-    loadFont('/fonts/NotoSansDevanagari.ttf'),
-  ])
-  const [latinFont, latinBoldFont, latinUnicodeFont, teluguFont, hindiFont] = await Promise.all([
-    pdf.embedFont(StandardFonts.Helvetica),
-    pdf.embedFont(StandardFonts.HelveticaBold),
-    pdf.embedFont(latinUnicodeBytes),
-    pdf.embedFont(teluguBytes),
-    pdf.embedFont(hindiBytes),
-  ])
-
-  const fontForText = (text: string, bold = false): PDFFont => {
-    if (/[\u0C00-\u0C7F]/.test(text)) return teluguFont
-    if (/[\u0900-\u097F]/.test(text)) return hindiFont
-    if (/[^\x00-\x7F]/.test(text)) return latinUnicodeFont
-    return bold ? latinBoldFont : latinFont
-  }
+  await Promise.all(fontDefinitions.map(async ({ family, source }) => {
+    const face = new FontFace(family, `url(${source})`)
+    await face.load()
+    document.fonts.add(face)
+  }))
 
   const textRuns = (text: string) => text.match(/[\u0C00-\u0C7F]+|[\u0900-\u097F]+|[^\u0900-\u0C7F]+/g) || ['']
-  const textWidth = (text: string, size: number, fallbackFont: PDFFont) =>
-    textRuns(text).reduce((width, run) => width + fontForText(run, fallbackFont === latinBoldFont).widthOfTextAtSize(run, size), 0)
+  const familyForText = (text: string) => {
+    if (/[\u0C00-\u0C7F]/.test(text)) return 'SongTelugu'
+    if (/[\u0900-\u097F]/.test(text)) return 'SongHindi'
+    if (/[^\x00-\x7F]/.test(text)) return 'SongUnicode'
+    return 'Arial, Helvetica, sans-serif'
+  }
 
-  const wrapText = (text: string, size: number, fallbackFont: PDFFont) => {
+  const fontValue = (text: string, size: number, bold = false) =>
+    `${bold ? 'bold ' : ''}${size}px ${familyForText(text)}`
+  const measureText = (context: CanvasRenderingContext2D, text: string, size: number, bold = false) =>
+    textRuns(text).reduce((width, run) => {
+      context.font = fontValue(run, size, bold)
+      return width + context.measureText(run).width
+    }, 0)
+
+  const wrapText = (context: CanvasRenderingContext2D, text: string, size: number, bold = false) => {
     const lines: string[] = []
     text.split(/\r?\n/).forEach((paragraph) => {
       if (!paragraph.trim()) {
@@ -183,79 +178,96 @@ async function createSongsPdf(songs: Song[]) {
       let currentLine = ''
       paragraph.trim().split(/\s+/).forEach((word) => {
         const candidate = currentLine ? `${currentLine} ${word}` : word
-        if (textWidth(candidate, size, fallbackFont) <= pageWidth - margin * 2) {
+        if (measureText(context, candidate, size, bold) <= pageWidth - margin * 2) {
           currentLine = candidate
           return
         }
 
         if (currentLine) lines.push(currentLine)
         currentLine = word
-        while (textWidth(currentLine, size, fallbackFont) > pageWidth - margin * 2 && currentLine.length > 1) {
+        while (measureText(context, currentLine, size, bold) > pageWidth - margin * 2 && currentLine.length > 1) {
           let splitAt = currentLine.length - 1
-          while (splitAt > 1 && textWidth(currentLine.slice(0, splitAt), size, fallbackFont) > pageWidth - margin * 2) {
+          while (splitAt > 1 && measureText(context, currentLine.slice(0, splitAt), size, bold) > pageWidth - margin * 2) {
             splitAt -= 1
           }
           lines.push(currentLine.slice(0, splitAt))
           currentLine = currentLine.slice(splitAt)
         }
       })
-      if (currentLine) {
-        lines.push(currentLine)
-      }
+      if (currentLine) lines.push(currentLine)
     })
     return lines
   }
 
-  const pages: PDFPage[] = [pdf.addPage([pageWidth, pageHeight])]
-  let page = pages[0]
-  let y = pageHeight - margin
-  const ensureSpace = (height: number) => {
-    if (y - height < bottomMargin) {
-      page = pdf.addPage([pageWidth, pageHeight])
-      pages.push(page)
-      y = pageHeight - margin
-    }
+  const pages: HTMLCanvasElement[] = []
+  let canvas: HTMLCanvasElement
+  let context: CanvasRenderingContext2D
+  let y = margin + 24
+  const startPage = () => {
+    canvas = document.createElement('canvas')
+    canvas.width = pageWidth * pixelScale
+    canvas.height = pageHeight * pixelScale
+    context = canvas.getContext('2d')!
+    context.scale(pixelScale, pixelScale)
+    context.fillStyle = '#ffffff'
+    context.fillRect(0, 0, pageWidth, pageHeight)
+    context.fillStyle = '#1f2937'
+    y = margin + 24
+    pages.push(canvas)
   }
-  const addText = (text: string, size: number, font: PDFFont, gapAfter = 0) => {
+  const ensureSpace = (height: number) => {
+    if (y + height > pageHeight - bottomMargin) startPage()
+  }
+  const addText = (text: string, size: number, bold = false, gapAfter = 0) => {
     ensureSpace(size + gapAfter)
     let x = margin
     textRuns(text).forEach((run) => {
-      const runFont = fontForText(run, font === latinBoldFont)
-      page.drawText(run, { x, y, size, font: runFont, color: rgb(0.12, 0.12, 0.16) })
-      x += runFont.widthOfTextAtSize(run, size)
+      context.font = fontValue(run, size, bold)
+      context.fillText(run, x, y)
+      x += context.measureText(run).width
     })
-    y -= size + gapAfter
+    y += size + gapAfter
   }
 
-  addText('Wesley Church Sunday School Songs', 22, latinBoldFont, 8)
-  addText(`${songs.length} song${songs.length === 1 ? '' : 's'} - Generated ${new Date().toLocaleDateString()}`, 10, latinFont, 20)
+  startPage()
+  addText('Wesley Church Sunday School Songs', 22, true, 8)
+  addText(`${songs.length} song${songs.length === 1 ? '' : 's'} - Generated ${new Date().toLocaleDateString()}`, 10, false, 20)
 
   songs.forEach((song, index) => {
     ensureSpace(52)
     if (index > 0) {
-      page.drawLine({ start: { x: margin, y }, end: { x: pageWidth - margin, y }, thickness: 0.7, color: rgb(0.82, 0.82, 0.82) })
-      y -= 18
+      context.strokeStyle = '#d1d5db'
+      context.lineWidth = 0.7
+      context.beginPath()
+      context.moveTo(margin, y)
+      context.lineTo(pageWidth - margin, y)
+      context.stroke()
+      y += 18
     }
-    const titleFont = fontForText(song.title, true)
-    wrapText(song.title, 16, titleFont).forEach((line) => addText(line, 16, titleFont, 4))
-    addText(song.category === 'vbs' ? `VBS Day ${song.vbs_day || ''}`.trim() : 'Sunday School', 9, latinFont, 10)
-    const lyricsFont = fontForText(song.lyrics || '')
-    wrapText(song.lyrics || '', 10.5, lyricsFont).forEach((line) => addText(line, 10.5, lyricsFont, 3))
-    y -= 10
+    wrapText(context, song.title, 16, true).forEach((line) => addText(line, 16, true, 4))
+    addText(song.category === 'vbs' ? `VBS Day ${song.vbs_day || ''}`.trim() : 'Sunday School', 9, false, 10)
+    wrapText(context, song.lyrics || '', 10.5).forEach((line) => addText(line, 10.5, false, 3))
+    y += 10
   })
 
-  pages.forEach((currentPage, index) => {
-    currentPage.drawLine({ start: { x: margin, y: 42 }, end: { x: pageWidth - margin, y: 42 }, thickness: 0.6, color: rgb(0.78, 0.78, 0.78) })
+  const pdf = await PDFDocument.create()
+  for (const [index, pageCanvas] of pages.entries()) {
+    const pageContext = pageCanvas.getContext('2d')!
+    pageContext.strokeStyle = '#c7c9ce'
+    pageContext.lineWidth = 0.6
+    pageContext.beginPath()
+    pageContext.moveTo(margin, pageHeight - 42)
+    pageContext.lineTo(pageWidth - margin, pageHeight - 42)
+    pageContext.stroke()
     const footer = `Page ${index + 1} of ${pages.length}`
-    currentPage.drawText(footer, {
-      x: pageWidth - margin - latinFont.widthOfTextAtSize(footer, 9),
-      y: 27,
-      size: 9,
-      font: latinFont,
-      color: rgb(0.35, 0.35, 0.4),
-    })
-  })
+    pageContext.font = '9px Arial, Helvetica, sans-serif'
+    pageContext.fillStyle = '#59606b'
+    pageContext.fillText(footer, pageWidth - margin - pageContext.measureText(footer).width, pageHeight - 27)
 
+    const pdfPage = pdf.addPage([pageWidth, pageHeight])
+    const image = await pdf.embedPng(pageCanvas.toDataURL('image/png'))
+    pdfPage.drawImage(image, { x: 0, y: 0, width: pageWidth, height: pageHeight })
+  }
   return pdf.save()
 }
 
