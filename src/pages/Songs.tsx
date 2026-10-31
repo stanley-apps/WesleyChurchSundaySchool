@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import Fuse from 'fuse.js'
 import ReactMarkdown from 'react-markdown'
 import { motion, AnimatePresence, Reorder } from 'framer-motion'
-import { GripVertical, Eye } from 'lucide-react'
+import { Check, Download, GripVertical, Eye, Search } from 'lucide-react'
 import { supabase, Song } from '../lib/supabase'
 import { useAuth, useNotification } from '../contexts/AuthContext'
 import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
@@ -132,6 +132,109 @@ function sortSongsForDisplay(songs: Song[]) {
   })
 }
 
+function pdfSafeText(value: string) {
+  return value
+    .replace(/[–—]/g, '-')
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/[^\x20-\x7E]/g, '?')
+}
+
+function pdfEscape(value: string) {
+  return pdfSafeText(value).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)')
+}
+
+function createSongsPdf(songs: Song[]) {
+  const pageWidth = 612
+  const pageHeight = 792
+  const margin = 54
+  const bottomMargin = 52
+  const linesPerTextBlock = (text: string, maxCharacters: number) => {
+    const lines: string[] = []
+    text.split(/\r?\n/).forEach((paragraph) => {
+      if (!paragraph.trim()) {
+        lines.push('')
+        return
+      }
+
+      let remaining = paragraph.trim()
+      while (remaining.length > maxCharacters) {
+        let breakAt = remaining.lastIndexOf(' ', maxCharacters)
+        if (breakAt < 1) breakAt = maxCharacters
+        lines.push(remaining.slice(0, breakAt).trim())
+        remaining = remaining.slice(breakAt).trim()
+      }
+      lines.push(remaining)
+    })
+    return lines
+  }
+
+  const pages: string[][] = [[]]
+  let y = pageHeight - margin
+  const ensureSpace = (height: number) => {
+    if (y - height < bottomMargin) {
+      pages.push([])
+      y = pageHeight - margin
+    }
+  }
+  const addText = (text: string, size: number, font: 'F1' | 'F2' = 'F1', gapAfter = 0) => {
+    ensureSpace(size + gapAfter)
+    pages[pages.length - 1].push(
+      `BT /${font} ${size} Tf 1 0 0 1 ${margin} ${y.toFixed(2)} Tm (${pdfEscape(text)}) Tj ET`
+    )
+    y -= size + gapAfter
+  }
+
+  addText('Wesley Church Sunday School Songs', 22, 'F2', 8)
+  addText(`${songs.length} song${songs.length === 1 ? '' : 's'} • Generated ${new Date().toLocaleDateString()}`, 10, 'F1', 20)
+
+  songs.forEach((song, index) => {
+    ensureSpace(52)
+    if (index > 0) {
+      pages[pages.length - 1].push(`0.82 g ${margin} ${y.toFixed(2)} m ${pageWidth - margin} ${y.toFixed(2)} l S 0 g`)
+      y -= 18
+    }
+    addText(song.title, 16, 'F2', 4)
+    addText(song.category === 'vbs' ? `VBS Day ${song.vbs_day || ''}`.trim() : 'Sunday School', 9, 'F1', 10)
+    linesPerTextBlock(song.lyrics || '', 92).forEach((line) => addText(line, 10.5, 'F1', 3))
+    y -= 10
+  })
+
+  const objects: string[] = []
+  objects[1] = '<< /Type /Catalog /Pages 2 0 R >>'
+  objects[2] = '<< /Type /Pages /Kids [PAGE_REFS] /Count PAGE_COUNT >>'
+  objects[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'
+  objects[4] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>'
+  const pageRefs: string[] = []
+
+  pages.forEach((commands, pageIndex) => {
+    const stream = commands.join('\n')
+    const contentObject = objects.length
+    objects.push(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`)
+    const pageObject = objects.length
+    objects.push(
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentObject} 0 R >>`
+    )
+    pageRefs[pageIndex] = `${pageObject} 0 R`
+  })
+
+  objects[2] = objects[2].replace('PAGE_REFS', pageRefs.join(' ')).replace('PAGE_COUNT', String(pages.length))
+  let pdf = '%PDF-1.4\n'
+  const offsets: number[] = [0]
+  objects.forEach((object, index) => {
+    if (!object) return
+    offsets[index] = pdf.length
+    pdf += `${index} 0 obj\n${object}\nendobj\n`
+  })
+  const xrefOffset = pdf.length
+  pdf += `xref\n0 ${objects.length}\n0000000000 65535 f \n`
+  for (let index = 1; index < objects.length; index++) {
+    pdf += `${String(offsets[index] || 0).padStart(10, '0')} 00000 n \n`
+  }
+  pdf += `trailer\n<< /Size ${objects.length} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`
+  return pdf
+}
+
 export function Songs() {
   const { user } = useAuth()
   const [view, setView] = useState<ViewState>('sunday_school')
@@ -148,6 +251,12 @@ export function Songs() {
   const [selectedDuplicateIds, setSelectedDuplicateIds] = useState<Set<string>>(new Set())
   const [activeVbsDay, setActiveVbsDay] = useState(1)
   const [fullscreenSong, setFullscreenSong] = useState<Song | null>(null)
+  const [showDownloadManager, setShowDownloadManager] = useState(false)
+  const [downloadCatalog, setDownloadCatalog] = useState<Song[]>([])
+  const [downloadSearchTerm, setDownloadSearchTerm] = useState('')
+  const [selectedDownloadIds, setSelectedDownloadIds] = useState<Set<string>>(new Set())
+  const [loadingDownloads, setLoadingDownloads] = useState(false)
+  const [downloading, setDownloading] = useState(false)
   
   const [fontScale, setFontScale] = useState(5)
   
@@ -397,6 +506,91 @@ export function Songs() {
     setSearchTerm('')
   }
 
+  const downloadSearchResults = useMemo(() => {
+    if (!downloadSearchTerm.trim()) return downloadCatalog
+
+    const fuse = new Fuse(downloadCatalog, {
+      keys: ['title', 'lyrics'],
+      threshold: 0.3,
+    })
+    return fuse.search(downloadSearchTerm).map((result) => result.item)
+  }, [downloadCatalog, downloadSearchTerm])
+
+  const openDownloadManager = async () => {
+    setShowDownloadManager(true)
+    setLoadingDownloads(true)
+    setDownloadSearchTerm('')
+
+    try {
+      const { data, error } = await supabase
+        .from('songs')
+        .select('*')
+        .order('title', { ascending: true })
+
+      if (error) throw error
+
+      const catalog = data || []
+      setDownloadCatalog(catalog)
+      setSelectedDownloadIds(new Set(catalog.map((song) => song.id)))
+    } catch (err: any) {
+      setShowDownloadManager(false)
+      showNotification('Error loading songs for download: ' + err.message, 'error')
+    } finally {
+      setLoadingDownloads(false)
+    }
+  }
+
+  const toggleDownloadSelection = (songId: string) => {
+    setSelectedDownloadIds((current) => {
+      const next = new Set(current)
+      if (next.has(songId)) next.delete(songId)
+      else next.add(songId)
+      return next
+    })
+  }
+
+  const toggleAllVisibleDownloadSongs = () => {
+    setSelectedDownloadIds((current) => {
+      const next = new Set(current)
+      const allVisibleSelected = downloadSearchResults.length > 0 &&
+        downloadSearchResults.every((song) => next.has(song.id))
+
+      downloadSearchResults.forEach((song) => {
+        if (allVisibleSelected) next.delete(song.id)
+        else next.add(song.id)
+      })
+      return next
+    })
+  }
+
+  const handleDownloadSelected = () => {
+    const selectedSongs = downloadCatalog.filter((song) => selectedDownloadIds.has(song.id))
+
+    if (selectedSongs.length === 0) {
+      showNotification('Select at least one song to download.', 'info')
+      return
+    }
+
+    setDownloading(true)
+    try {
+      const pdf = createSongsPdf(selectedSongs)
+      const blob = new Blob([pdf], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `wesley-church-songs-${selectedSongs.length}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+
+      showNotification(`Downloaded ${selectedSongs.length} song${selectedSongs.length === 1 ? '' : 's'} as a PDF.`, 'success')
+      setShowDownloadManager(false)
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   if (loading) {
     return (
       <ChildFriendlyBackground>
@@ -416,13 +610,102 @@ export function Songs() {
               {view === 'sunday_school' ? 'Sunday School Songs 🎵' : `VBS Day ${activeVbsDay} ☀️`}
             </h1>
           </div>
-          <Link
-            to="/dashboard/songs/upload"
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors shadow-md"
-          >
-            ➕ Upload New Song
-          </Link>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={openDownloadManager}
+              className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-lg transition-colors shadow-md"
+            >
+              <Download size={18} />
+              Download
+            </button>
+            <Link
+              to="/dashboard/songs/upload"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors shadow-md"
+            >
+              ➕ Upload New Song
+            </Link>
+          </div>
         </div>
+
+        {showDownloadManager && (
+          <div className="mb-6 bg-white/95 backdrop-blur-sm rounded-2xl border border-emerald-200 shadow-lg p-5" role="dialog" aria-modal="true" aria-labelledby="download-songs-title">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-4">
+              <div>
+                <h2 id="download-songs-title" className="text-xl font-bold text-gray-900">Download Songs</h2>
+                <p className="text-sm text-gray-600 mt-1">Download all songs or search and select only the songs you need.</p>
+              </div>
+              <button onClick={() => setShowDownloadManager(false)} className="self-start text-gray-500 hover:text-gray-800 font-medium">
+                Close
+              </button>
+            </div>
+
+            {loadingDownloads ? (
+              <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-blue-800 font-medium">Loading songs...</div>
+            ) : (
+              <>
+                <div className="relative mb-4">
+                  <input
+                    type="text"
+                    value={downloadSearchTerm}
+                    onChange={(event) => setDownloadSearchTerm(event.target.value)}
+                    placeholder="Search songs to download..."
+                    className="w-full px-4 py-3 pl-11 rounded-xl border border-gray-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
+                    aria-label="Search songs to download"
+                  />
+                  <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                  <p className="text-sm font-medium text-gray-700">{selectedDownloadIds.size} of {downloadCatalog.length} selected</p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={toggleAllVisibleDownloadSongs}
+                      disabled={downloadSearchResults.length === 0}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50"
+                    >
+                      <Check size={16} />
+                      {downloadSearchResults.length > 0 && downloadSearchResults.every((song) => selectedDownloadIds.has(song.id)) ? 'Clear visible' : 'Select visible'}
+                    </button>
+                    <button onClick={() => setSelectedDownloadIds(new Set())} className="px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200">
+                      Clear all
+                    </button>
+                  </div>
+                </div>
+
+                <div className="max-h-80 overflow-y-auto rounded-xl border border-gray-200 divide-y divide-gray-100">
+                  {downloadSearchResults.length === 0 ? (
+                    <p className="px-4 py-8 text-center text-gray-500">No songs match your search.</p>
+                  ) : (
+                    downloadSearchResults.map((song) => (
+                      <label key={song.id} className="flex items-center gap-3 px-4 py-3 hover:bg-emerald-50/50 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedDownloadIds.has(song.id)}
+                          onChange={() => toggleDownloadSelection(song.id)}
+                          className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                        />
+                        <span className="flex-1 min-w-0 truncate font-medium text-gray-900">{song.title}</span>
+                        <span className="text-xs text-gray-500">{song.category === 'vbs' ? `VBS Day ${song.vbs_day}` : 'Sunday School'}</span>
+                      </label>
+                    ))
+                  )}
+                </div>
+
+                <div className="mt-5 flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
+                  <button onClick={() => setShowDownloadManager(false)} className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium">Cancel</button>
+                  <button
+                    onClick={handleDownloadSelected}
+                    disabled={downloading || selectedDownloadIds.size === 0}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 disabled:cursor-not-allowed text-white font-medium shadow-sm"
+                  >
+                    <Download size={18} />
+                    {downloading ? 'Preparing PDF...' : `Download ${selectedDownloadIds.size} song${selectedDownloadIds.size === 1 ? '' : 's'}`}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
         <div className="mb-6 flex flex-wrap items-center gap-3">
           <button
