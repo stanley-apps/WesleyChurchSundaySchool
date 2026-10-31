@@ -6,6 +6,7 @@ import { motion, AnimatePresence, Reorder } from 'framer-motion'
 import { Check, Download, GripVertical, Eye, Search } from 'lucide-react'
 import { PDFDocument, rgb, StandardFonts, type PDFFont, type PDFPage } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
+import 'regenerator-runtime/runtime.js'
 import { supabase, Song } from '../lib/supabase'
 import { useAuth, useNotification } from '../contexts/AuthContext'
 import { ChildFriendlyBackground } from '../components/ChildFriendlyBackground'
@@ -148,14 +149,14 @@ async function createSongsPdf(songs: Song[]) {
     return response.arrayBuffer()
   }
   const [teluguBytes, hindiBytes] = await Promise.all([
-    loadFont('/fonts/NotoSansTelugu.ttf'),
+    loadFont('/fonts/NTR-Regular.ttf'),
     loadFont('/fonts/NotoSansDevanagari.ttf'),
   ])
   const [latinFont, latinBoldFont, teluguFont, hindiFont] = await Promise.all([
     pdf.embedFont(StandardFonts.Helvetica),
     pdf.embedFont(StandardFonts.HelveticaBold),
-    pdf.embedFont(teluguBytes, { subset: true }),
-    pdf.embedFont(hindiBytes, { subset: true }),
+    pdf.embedFont(teluguBytes),
+    pdf.embedFont(hindiBytes),
   ])
 
   const fontForText = (text: string, bold = false): PDFFont => {
