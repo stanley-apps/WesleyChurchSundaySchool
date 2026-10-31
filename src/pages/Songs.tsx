@@ -150,7 +150,7 @@ async function createSongsPdf(songs: Song[]) {
   }
   const [latinUnicodeBytes, teluguBytes, hindiBytes] = await Promise.all([
     loadFont('/fonts/NotoSans-Regular.ttf'),
-    loadFont('/fonts/NTR-Regular.ttf'),
+    loadFont('/fonts/Mandali-Regular.ttf'),
     loadFont('/fonts/NotoSansDevanagari.ttf'),
   ])
   const [latinFont, latinBoldFont, latinUnicodeFont, teluguFont, hindiFont] = await Promise.all([
